@@ -34,7 +34,42 @@ function podeEditar(){return !!user}
 function podeSelecionar(){return !!user}
 function podeGerenciarEquipe(){return false}
 function home(){const reviews=DB.esquetes.filter(x=>x.selecao==='Em avaliação do diretor').length,selected=DB.esquetes.filter(x=>x.selecao==='Selecionada').length,next=DB.ensaios[0];shell('Depois Não Reclama','Um espetáculo de esquetes humorísticas · Arcana Produções Artísticas','<div class="grid"><div class="stat"><b>'+DB.elenco.length+'</b><span>Elenco confirmado</span></div><div class="stat"><b>'+DB.esquetes.length+'</b><span>Esquetes no banco</span></div><div class="stat"><b>'+reviews+'</b><span>Em avaliação</span></div><div class="stat"><b>'+selected+'</b><span>Esquetes selecionadas</span></div></div><div class="section two"><div class="card"><h2>Próximas decisões</h2><div class="task">Definir repertório</div><div class="task">Definir calendário de ensaios</div><div class="task">Definir figurinos e adereços</div></div><div class="next"><div class="eyebrow" style="color:#f5a7c2">Próximo ensaio</div><h2>'+esc(next?next.titulo:'A definir')+'</h2><div class="muted">'+(next&&next.data_hora?new Date(next.data_hora).toLocaleString('pt-BR'):'Data · horário · local')+'</div><hr style="border:0;border-top:1px solid #ffffff20;margin:20px 0"><div class="muted">'+(user?'Sessão conectada':'Modo consulta. Faça login para editar dados.')+'</div></div></div><div class="section"><h2>Elenco confirmado</h2><div class="cast">'+DB.elenco.map(n=>'<div class="card person"><div class="avatar">'+esc(n.nome.split(' ').map(x=>x[0]).slice(0,2).join(''))+'</div><b>'+esc(n.nome)+'</b></div>').join('')+'</div></div><div class="section card"><h2>Acesso</h2>'+(user?'<div class="sub">Sistema aberto para gestão da produção. Não é necessário fazer login.</div>':'<div class="sub">Para editar o sistema, faça login.</div><button class="btn" onclick="login()">Entrar</button>')+'</div>')}
-function elenco(){shell('Elenco','5 integrantes confirmados · distribuição de personagens ainda não definida','<div class="cast">'+DB.elenco.map(n=>'<div class="card person"><div class="avatar">'+esc(n.nome.split(' ').map(x=>x[0]).slice(0,2).join(''))+'</div><b>'+esc(n.nome)+'</b><div class="meta">Personagens: a definir</div><div class="meta">Esquetes: a definir</div></div>').join('')+'</div><div class="section card"><h2>Regra atual</h2><div class="sub">As esquetes são um banco de repertório. Nenhuma está vinculada a um ator para a montagem final.</div></div>')}
+let elencoEditando=null;
+function abrirModalElenco(id){
+  elencoEditando=id?DB.elenco.find(x=>x.id===id):null;
+  const r=elencoEditando;
+  document.getElementById('elencoModal').classList.add('show');
+  document.getElementById('elencoModalTitle').textContent=r?'Editar integrante':'Novo integrante';
+  document.getElementById('eNome').value=r?.nome||'';
+  document.getElementById('eArtistico').value=r?.nome_artistico||'';
+  document.getElementById('eFuncao').value=r?.funcao||'';
+  document.getElementById('eObs').value=r?.observacoes||'';
+}
+function fecharModalElenco(){const m=document.getElementById('elencoModal');if(m)m.classList.remove('show');elencoEditando=null}
+async function salvarModalElenco(){
+  const nome=document.getElementById('eNome').value.trim();
+  if(!nome)return alert('Informe o nome do integrante.');
+  const payload={nome,nome_artistico:document.getElementById('eArtistico').value.trim(),funcao:document.getElementById('eFuncao').value.trim(),observacoes:document.getElementById('eObs').value.trim(),ativo:true};
+  let r;
+  if(elencoEditando) r=await sbClient.from('elenco').update(payload).eq('id',elencoEditando.id);
+  else r=await sbClient.from('elenco').insert(payload);
+  if(r.error)return alert('Não foi possível salvar: '+r.error.message);
+  fecharModalElenco();await load();go('elenco');
+}
+async function alternarAtivoElenco(id,ativo){
+  const p=DB.elenco.find(x=>x.id===id);if(!p)return;
+  const r=await sbClient.from('elenco').update({ativo}).eq('id',id);
+  if(r.error)return alert('Não foi possível atualizar: '+r.error.message);
+  await load();go('elenco');
+}
+function elenco(){
+  const lista=DB.elenco;
+  shell('Elenco',lista.length+' integrante(s) ativos · personagens e distribuição podem ser definidos no Espetáculo',
+    '<div style="display:flex;justify-content:flex-end;margin-bottom:15px"><button class="btn" onclick="abrirModalElenco()">+ Adicionar integrante</button></div>'+
+    '<div class="cast">'+lista.map(n=>'<div class="card person"><div class="avatar">'+esc(n.nome.split(' ').map(x=>x[0]).slice(0,2).join(''))+'</div><b>'+esc(n.nome)+'</b>'+(n.nome_artistico?'<div class="meta">Nome artístico: '+esc(n.nome_artistico)+'</div>':'')+(n.funcao?'<div class="meta">'+esc(n.funcao)+'</div>':'')+'<div class="meta">Personagens: a definir</div><div class="meta">Esquetes: a definir</div><div style="margin-top:12px"><button class="filter" onclick="abrirModalElenco(\''+n.id+'\')">Editar</button><button class="filter" style="margin-left:6px" onclick="alternarAtivoElenco(\''+n.id+'\',false)">Inativar</button></div></div>').join('')+'</div>'+
+    '<div class="section card"><h2>Regra atual</h2><div class="sub">Integrantes podem ser adicionados ou inativados. A distribuição de personagens e a participação em cada esquete continuam sendo definidas separadamente.</div></div>'+
+    '<div id="elencoModal" class="modal" onclick="if(event.target===this)fecharModalElenco()"><div class="modalbox"><div class="modalhead"><div><div class="eyebrow">Equipe artística</div><h2 id="elencoModalTitle">Novo integrante</h2></div><button class="close" onclick="fecharModalElenco()">×</button></div><div class="formgrid"><div class="field full"><label>Nome completo</label><input id="eNome" placeholder="Ex.: Nome do integrante"></div><div class="field"><label>Nome artístico</label><input id="eArtistico" placeholder="Opcional"></div><div class="field"><label>Função</label><input id="eFuncao" placeholder="Ex.: Ator, atriz, direção"></div><div class="field full"><label>Observações</label><textarea id="eObs" placeholder="Informações úteis sobre o integrante..."></textarea></div></div><div class="modalactions"><button class="filter" onclick="fecharModalElenco()">Cancelar</button><button class="btn" onclick="salvarModalElenco()">Salvar integrante</button></div></div></div>');
+}
 function esquetes(){let arr=DB.esquetes.filter(x=>(filter==='Todas'||(filter==='Inéditas'&&x.situacao==='Inédita')||(filter==='Já apresentadas'&&x.situacao.includes('Já'))||(filter==='Em avaliação'&&x.selecao==='Em avaliação do diretor'))&&x.titulo.toLowerCase().includes(query.toLowerCase()));shell('Banco de Esquetes',DB.esquetes.length+' opções de repertório','<input class="search" placeholder="Buscar esquete..." value="'+esc(query)+'" oninput="query=this.value;render()"><div class="filters">'+['Todas','Inéditas','Já apresentadas','Em avaliação'].map(f=>'<button class="filter '+(filter===f?'active':'')+'" onclick="filter=\''+f+'\';render()">'+f+'</button>').join('')+'</div><div class="cards">'+arr.map(x=>'<div class="card sketch"><h3>'+x.numero+'. '+esc(x.titulo)+'</h3><div class="meta">Origem: '+esc(x.responsavel_origem||'Não informado')+'</div><span class="badge">'+esc(x.situacao)+'</span>'+(x.selecao==='Em avaliação do diretor'?'<div class="badge review">★ Em avaliação do diretor</div>':'')+'<div style="margin-top:12px">'+(podeSelecionar()?'<button class="filter" onclick="toggleSelect(\''+x.id+'\')">'+(x.selecao==='Selecionada'?'✓ Selecionada':'Selecionar')+'</button>':'<span class="meta">A seleção do repertório é restrita ao diretor.</span>')+'<button class="filter" style="margin-left:6px" onclick="editarEsquete(\''+x.id+'\')">Editar</button><button class="filter" style="margin-left:6px" onclick="excluirEsquete(\''+x.id+'\')">Excluir</button></div></div>').join('')+'</div>')}
 async function editarEsquete(id){const row=DB.esquetes.find(x=>x.id===id);if(!row)return;const titulo=prompt('Nome da esquete:',row.titulo);if(titulo===null)return;if(!titulo.trim())return alert('O nome não pode ficar vazio.');const r=await sbClient.from('esquetes').update({titulo:titulo.trim()}).eq('id',id);if(r.error)return alert('Não foi possível editar: '+r.error.message);await load()}
 async function excluirEsquete(id){const row=DB.esquetes.find(x=>x.id===id);if(!row)return;if(!confirm('Excluir definitivamente a esquete "'+row.titulo+'"?\n\nEla também será retirada da grade do espetáculo e suas atribuições de elenco serão removidas.'))return;const r=await sbClient.from('esquetes').delete().eq('id',id);if(r.error)return alert('Não foi possível excluir: '+r.error.message);await load()}
