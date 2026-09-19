@@ -90,7 +90,59 @@ async function editarEnsaio(id){await formularioEnsaio(DB.ensaios.find(x=>x.id==
 async function formularioEnsaio(row){const titulo=prompt('Título do ensaio:',row?row.titulo:'Ensaio');if(titulo===null)return;if(!titulo.trim())return alert('Informe um título.');const data=prompt('Data e horário (AAAA-MM-DDTHH:MM):',row&&row.data_hora?new Date(row.data_hora).toISOString().slice(0,16):'');if(data===null)return;const local=prompt('Local:',row?row.local||'':'');if(local===null)return;const status=prompt('Status (Planejado, Confirmado, Realizado, Cancelado):',row?row.status||'Planejado':'Planejado');if(status===null)return;const obs=prompt('Observações:',row?row.observacoes||'':'');if(obs===null)return;let id=row&&row.id;if(row){const r=await sbClient.from('ensaios').update({titulo:titulo.trim(),data_hora:data?new Date(data).toISOString():null,local:local.trim(),status:status.trim(),observacoes:obs.trim()}).eq('id',row.id);if(r.error)return alert('Não foi possível salvar: '+r.error.message)}else{const r=await sbClient.from('ensaios').insert({titulo:titulo.trim(),data_hora:data?new Date(data).toISOString():null,local:local.trim(),status:status.trim(),observacoes:obs.trim()}).select().single();if(r.error)return alert('Não foi possível criar: '+r.error.message);id=r.data.id}await load();await selecionarEsquetesEnsaio(id)}
 async function selecionarEsquetesEnsaio(id){const atuais=DB.ensaioEsquetes.filter(x=>x.ensaio_id===id).map(x=>x.esquete_id);const selecionadas=prompt('Digite os números das esquetes, separados por vírgula.\n\n'+DB.esquetes.filter(x=>x.selecao==='Selecionada').map(x=>x.numero+'. '+x.titulo).join('\n'),atuais.map(id=>{const s=DB.esquetes.find(x=>x.id===id);return s?s.numero:''}).filter(Boolean).join(', '));if(selecionadas===null)return;const nums=selecionadas.split(',').map(x=>parseInt(x.trim(),10)).filter(Number.isFinite);const escolhidas=DB.esquetes.filter(x=>nums.includes(x.numero));const del=await sbClient.from('ensaio_esquetes').delete().eq('ensaio_id',id);if(del.error)return alert('Não foi possível atualizar as esquetes: '+del.error.message);if(escolhidas.length){const ins=await sbClient.from('ensaio_esquetes').insert(escolhidas.map(x=>({ensaio_id:id,esquete_id:x.id})));if(ins.error)return alert('Não foi possível vincular as esquetes: '+ins.error.message)}await load()}
 async function excluirEnsaio(id){const row=DB.ensaios.find(x=>x.id===id);if(!row)return;if(!confirm('Excluir o ensaio "'+row.titulo+'"?'))return;const r=await sbClient.from('ensaios').delete().eq('id',id);if(r.error)return alert('Não foi possível excluir: '+r.error.message);await load()}
-function producao(){const statuses=['A fazer','Em andamento','Concluído'];shell('Produção','Acompanhamento das tarefas da montagem','<div class="kanban">'+statuses.map(st=>'<div class="col"><h3>'+st+'</h3>'+(DB.tarefas.filter(x=>x.status===st).map(x=>'<div class="item">'+esc(x.titulo)+'</div>').join('')||'<div class="empty">Nenhuma</div>')+'</div>').join('')+'</div>')}
+let tarefaEditando=null;
+function producao(){
+  const statuses=['A fazer','Em andamento','Concluído'];
+  const cards=statuses.map(st=>'<div class="col"><div style="display:flex;justify-content:space-between;align-items:center"><h3>'+st+'</h3><button class="filter" onclick="abrirTarefa()">+ Adicionar</button></div>'+
+    (DB.tarefas.filter(x=>x.status===st).map(x=>'<div class="item"><div style="font-weight:800">'+esc(x.titulo)+'</div>'+
+    (x.categoria?'<div class="meta">'+esc(x.categoria)+'</div>':'')+
+    (x.responsavel?'<div class="meta">Responsável: '+esc(x.responsavel)+'</div>':'')+
+    (x.prazo?'<div class="meta">Prazo: '+new Date(x.prazo+'T00:00:00').toLocaleDateString('pt-BR')+'</div>':'')+
+    (x.observacoes?'<div class="meta">'+esc(x.observacoes)+'</div>':'')+
+    '<div style="margin-top:9px"><button class="filter" onclick="abrirTarefa(\''+x.id+'\')">Editar</button> <button class="filter" onclick="excluirTarefa(\''+x.id+'\')">Excluir</button></div></div>').join('')||'<div class="empty">Nenhuma</div>')+
+    '</div>').join('');
+  shell('Produção','Acompanhamento das tarefas da montagem',
+    '<div style="display:flex;justify-content:flex-end;margin-bottom:15px"><button class="btn" onclick="abrirTarefa()">+ Nova tarefa</button></div>'+
+    '<div class="kanban">'+cards+'</div>'+
+    '<div id="tarefaModal" class="modal" onclick="if(event.target===this)fecharTarefa()"><div class="modalbox"><div class="modalhead"><div><div class="eyebrow">Produção</div><h2 id="tarefaTitulo">Nova tarefa</h2></div><button class="close" onclick="fecharTarefa()">×</button></div>'+
+    '<div class="formgrid"><div class="field full"><label>Tarefa</label><input id="tTitulo" placeholder="Ex.: Definir figurinos"></div>'+
+    '<div class="field"><label>Categoria</label><input id="tCategoria" placeholder="Ex.: Figurino, cenário, ensaio"></div>'+
+    '<div class="field"><label>Responsável</label><input id="tResponsavel" placeholder="Nome"></div>'+
+    '<div class="field"><label>Status</label><select id="tStatus"><option>A fazer</option><option>Em andamento</option><option>Concluído</option></select></div>'+
+    '<div class="field"><label>Prazo</label><input id="tPrazo" type="date"></div>'+
+    '<div class="field full"><label>Observações</label><textarea id="tObs" placeholder="Detalhes da tarefa..."></textarea></div></div>'+
+    '<div class="modalactions"><button class="filter" onclick="fecharTarefa()">Cancelar</button><button class="btn" onclick="salvarTarefa()">Salvar tarefa</button></div></div></div>');
+}
+function abrirTarefa(id){
+  tarefaEditando=id?DB.tarefas.find(x=>x.id===id):null;
+  const r=tarefaEditando;
+  document.getElementById('tarefaModal').classList.add('show');
+  document.getElementById('tarefaTitulo').textContent=r?'Editar tarefa':'Nova tarefa';
+  document.getElementById('tTitulo').value=r?.titulo||'';
+  document.getElementById('tCategoria').value=r?.categoria||'';
+  document.getElementById('tResponsavel').value=r?.responsavel||'';
+  document.getElementById('tStatus').value=r?.status||'A fazer';
+  document.getElementById('tPrazo').value=r?.prazo||'';
+  document.getElementById('tObs').value=r?.observacoes||'';
+}
+function fecharTarefa(){const m=document.getElementById('tarefaModal');if(m)m.classList.remove('show');tarefaEditando=null}
+async function salvarTarefa(){
+  const titulo=document.getElementById('tTitulo').value.trim();
+  if(!titulo)return alert('Informe a tarefa.');
+  const payload={titulo,categoria:document.getElementById('tCategoria').value.trim(),responsavel:document.getElementById('tResponsavel').value.trim(),status:document.getElementById('tStatus').value,prazo:document.getElementById('tPrazo').value||null,observacoes:document.getElementById('tObs').value.trim()};
+  const r=tarefaEditando
+    ? await sbClient.from('tarefas_producao').update(payload).eq('id',tarefaEditando.id)
+    : await sbClient.from('tarefas_producao').insert(payload);
+  if(r.error)return alert('Não foi possível salvar a tarefa: '+r.error.message);
+  fecharTarefa();await load();go('producao');
+}
+async function excluirTarefa(id){
+  const row=DB.tarefas.find(x=>x.id===id);
+  if(!row||!confirm('Excluir a tarefa "'+row.titulo+'"?'))return;
+  const r=await sbClient.from('tarefas_producao').delete().eq('id',id);
+  if(r.error)return alert('Não foi possível excluir: '+r.error.message);
+  await load();go('producao');
+}
 function funcoesDaPessoa(pid){return DB.perfilFuncoes.filter(x=>x.perfil_id===pid).map(x=>DB.funcoes.find(f=>f.id===x.funcao_id)).filter(Boolean)}
  function generic(t,s,b){shell(t,s,b)}
 let loginCooldownUntil=0;
