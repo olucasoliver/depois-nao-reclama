@@ -50,12 +50,42 @@ function fecharModalElenco(){const m=document.getElementById('elencoModal');if(m
 async function salvarModalElenco(){
   const nome=document.getElementById('eNome').value.trim();
   if(!nome)return alert('Informe o nome do integrante.');
-  const payload={nome,nome_artistico:document.getElementById('eArtistico').value.trim(),funcao:document.getElementById('eFuncao').value.trim(),observacoes:document.getElementById('eObs').value.trim(),ativo:true};const foto=document.getElementById('eFoto').files[0];
+
+  const payload={
+    nome,
+    nome_artistico:document.getElementById('eArtistico').value.trim(),
+    funcao:document.getElementById('eFuncao').value.trim(),
+    observacoes:document.getElementById('eObs').value.trim(),
+    ativo:true
+  };
+
+  const foto=document.getElementById('eFoto').files[0];
+
+  if(foto){
+    if(!['image/jpeg','image/png','image/webp'].includes(foto.type)){
+      return alert('A foto precisa ser JPG, PNG ou WEBP.');
+    }
+    if(foto.size>5*1024*1024){
+      return alert('A foto deve ter no máximo 5 MB.');
+    }
+
+    const ext=(foto.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+    const path=(elencoEditando?.id||crypto.randomUUID())+'/'+Date.now()+'.'+ext;
+    const upload=await sbClient.storage.from('elenco-fotos').upload(path,foto,{contentType:foto.type,upsert:true});
+    if(upload.error)return alert('Não foi possível enviar a foto: '+upload.error.message);
+
+    const publicUrl=sbClient.storage.from('elenco-fotos').getPublicUrl(path).data.publicUrl;
+    payload.foto_url=publicUrl;
+  }
+
   let r;
   if(elencoEditando) r=await sbClient.from('elenco').update(payload).eq('id',elencoEditando.id);
   else r=await sbClient.from('elenco').insert(payload);
-  if(r.error)return alert('Não foi possível salvar: '+r.error.message);
-  fecharModalElenco();await load();go('elenco');
+
+  if(r.error)return alert('Não foi possível salvar o integrante: '+r.error.message);
+  fecharModalElenco();
+  await load();
+  go('elenco');
 }
 async function alternarAtivoElenco(id,ativo){
   const p=DB.elenco.find(x=>x.id===id);if(!p)return;
