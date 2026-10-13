@@ -51,6 +51,7 @@
   }
 
   function navFinal() {
+    if (typeof navPermitido !== 'function' || !document.querySelector('#nav')) return;
     const labels = {
       inicio:'Início', elenco:'Elenco', esquetes:'Banco de Esquetes', espetaculo:'Grade',
       ensaios:'Ensaios', producao:'Produção', divulgacao:'Divulgação', orcamento:'Orçamento',
