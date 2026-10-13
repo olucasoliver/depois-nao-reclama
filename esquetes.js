@@ -83,6 +83,11 @@ async function alternarSelecao(id) {
 }
 
 /* ---------- Modal: nova esquete / editar informações ---------- */
+function opcoesSituacao() {
+  const base = ['Inédita', 'Já apresentada'];
+  const existentes = DB.esquetes.map(x => x.situacao).filter(Boolean);
+  return [...new Set(base.concat(existentes))].map(v => '<option>' + esc(v) + '</option>').join('');
+}
 function modalEsquete() {
   return '<div id="esqModal" class="modal" onclick="if(event.target===this)fecharModalEsquete()"><div class="modalbox">' +
     '<div class="modalhead"><div><div class="eyebrow">Repertório</div><h2 id="esqModalTitulo">Nova esquete</h2></div><button class="close" onclick="fecharModalEsquete()">×</button></div>' +
@@ -90,7 +95,7 @@ function modalEsquete() {
     '<div class="field"><label>Número</label><input id="qNumero" type="number" min="1"></div>' +
     '<div class="field"><label>Duração (minutos)</label><input id="qDuracao" type="number" min="1" placeholder="Ex.: 8"></div>' +
     '<div class="field full"><label>Título</label><input id="qTitulo" placeholder="Nome da esquete"></div>' +
-    '<div class="field"><label>Situação</label><select id="qSituacao"><option>Inédita</option><option>Já apresentada</option></select></div>' +
+    '<div class="field"><label>Situação</label><select id="qSituacao">' + opcoesSituacao() + '</select></div>' +
     '<div class="field"><label>Origem / autoria</label><input id="qOrigem" placeholder="Quem trouxe ou escreveu"></div>' +
     '<div class="field full"><label>Avaliação</label><select id="qSelecao"><option>Não selecionada</option><option>Em avaliação do diretor</option><option>Selecionada</option></select></div>' +
     '<div class="field full"><label>Link do texto</label><input id="qTexto" placeholder="Link do Google Drive, Docs, PDF..."></div>' +

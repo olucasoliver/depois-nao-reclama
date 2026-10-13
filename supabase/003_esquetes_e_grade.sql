@@ -98,3 +98,6 @@ create policy "gestao altera" on public.esquete_itens for all to authenticated
 grant select, insert, update, delete on public.personagens, public.esquete_itens to authenticated;
 
 commit;
+
+-- Avisa a API do Supabase que existem tabelas novas
+notify pgrst, 'reload schema';
