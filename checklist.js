@@ -54,12 +54,12 @@
     const labels = {
       inicio:'Início', elenco:'Elenco', esquetes:'Banco de Esquetes', espetaculo:'Grade',
       ensaios:'Ensaios', producao:'Produção', divulgacao:'Divulgação', orcamento:'Orçamento',
-      checklist:'Checklist Final', ficha:'Ficha Técnica'
+      checklist:'Checklist Final', ficha:'Ficha Técnica', equipe:'Equipe e acessos'
     };
-    document.querySelector('#nav').innerHTML = navItems.map(x =>
+    document.querySelector('#nav').innerHTML = navPermitido().map(x =>
       '<button class="' + (page === x[0] ? 'active' : '') + '" onclick="go(\'' + x[0] + '\')">' +
       labels[x[0]] + '</button>'
-    ).join('');
+    ).join('') + blocoUsuario();
   }
 
   setTimeout(() => {
