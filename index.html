@@ -19,7 +19,7 @@
 </aside>
 <main class="main" id="main"></main>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./ficha.js"></script><script src="./acesso.js"></script><script src="./sessoes.js"></script><script src="./esquetes.js"></script><script src="./ensaios.js"></script><script>const SUPABASE_URL='https://tatcgvmdozofxhxribdn.supabase.co';
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./ficha.js"></script><script src="./acesso.js"></script><script src="./sessoes.js"></script><script src="./esquetes.js"></script><script src="./ensaios.js"></script><script src="./gestao.js"></script><script>const SUPABASE_URL='https://tatcgvmdozofxhxribdn.supabase.co';
 const SUPABASE_KEY='sb_publishable_Q_OSMySEc1JZaLf5kxGsZA_31mfCKas';
 const sbClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let DB={elenco:[],esquetes:[],ensaios:[],tarefas:[],ficha:[],divulgacao:[],orcamento:[],checklist:[],atribuicoes:[],ensaioEsquetes:[],sessoes:[],personagens:[],itens:[],presencas:[],perfil:null,funcoes:[],perfilFuncoes:[],perfis:[]},page='inicio',filter='Todas',query='',user=null;
@@ -55,7 +55,7 @@ function podeGerenciarEquipe(){return eDirecao()}
 function proximoEnsaio(){const agora=Date.now();return DB.ensaios.filter(x=>x.data_hora&&x.status!=='Cancelado'&&x.status!=='Realizado'&&new Date(x.data_hora).getTime()>=agora).sort((a,b)=>new Date(a.data_hora)-new Date(b.data_hora))[0]||null}
 function dataLocalISO(dt){const p=n=>String(n).padStart(2,'0');return dt.getFullYear()+'-'+p(dt.getMonth()+1)+'-'+p(dt.getDate())}
 function buscarEsquete(valor){query=valor;render();const i=document.getElementById('buscaEsquete');if(i){i.focus();i.setSelectionRange(valor.length,valor.length)}}
-function home(){const reviews=DB.esquetes.filter(x=>x.selecao==='Em avaliação do diretor').length,selected=DB.esquetes.filter(x=>x.selecao==='Selecionada').length,next=proximoEnsaio();shell('Depois Não Reclama','Um espetáculo de esquetes humorísticas · Arcana Produções Artísticas',blocoSessao()+'<div class="section grid"><div class="stat"><b>'+DB.elenco.length+'</b><span>Elenco confirmado</span></div><div class="stat"><b>'+DB.esquetes.length+'</b><span>Esquetes no banco</span></div><div class="stat"><b>'+reviews+'</b><span>Em avaliação</span></div><div class="stat"><b>'+selected+'</b><span>Esquetes selecionadas</span></div></div><div class="section two"><div class="card"><h2>Próximas decisões</h2><div class="task">Definir repertório</div><div class="task">Definir calendário de ensaios</div><div class="task">Definir figurinos e adereços</div></div><div class="next"><div class="eyebrow" style="color:#f5a7c2">Próximo ensaio</div><h2>'+esc(next?next.titulo:'A definir')+'</h2><div class="muted">'+(next?dataEnsaio(next):'Data · horário · local')+'</div>'+(next?blocoProximoEnsaio(next):'')+'</div></div><div class="section"><h2>Elenco confirmado</h2><div class="cast">'+DB.elenco.map(n=>'<div class="card person"><div class="avatar">'+(n.foto_url?'<img src="'+esc(n.foto_url)+'" alt="'+esc(n.nome)+'">':esc(n.nome.split(' ').map(x=>x[0]).slice(0,2).join('')) )+'</div><b>'+esc(n.nome)+'</b></div>').join('')+'</div></div>')}
+function home(){const reviews=DB.esquetes.filter(x=>x.selecao==='Em avaliação do diretor').length,selected=DB.esquetes.filter(x=>x.selecao==='Selecionada').length,next=proximoEnsaio();shell('Depois Não Reclama','Um espetáculo de esquetes humorísticas · Arcana Produções Artísticas',blocoSessao()+'<div class="section grid"><div class="stat"><b>'+DB.elenco.length+'</b><span>Elenco confirmado</span></div><div class="stat"><b>'+DB.esquetes.length+'</b><span>Esquetes no banco</span></div><div class="stat"><b>'+reviews+'</b><span>Em avaliação</span></div><div class="stat"><b>'+selected+'</b><span>Esquetes selecionadas</span></div></div><div class="section two">'+blocoPendencias()+'<div class="next"><div class="eyebrow" style="color:#f5a7c2">Próximo ensaio</div><h2>'+esc(next?next.titulo:'A definir')+'</h2><div class="muted">'+(next?dataEnsaio(next):'Data · horário · local')+'</div>'+(next?blocoProximoEnsaio(next):'')+'</div></div><div class="section"><h2>Elenco confirmado</h2><div class="cast">'+DB.elenco.map(n=>'<div class="card person"><div class="avatar">'+(n.foto_url?'<img src="'+esc(n.foto_url)+'" alt="'+esc(n.nome)+'">':esc(n.nome.split(' ').map(x=>x[0]).slice(0,2).join('')) )+'</div><b>'+esc(n.nome)+'</b></div>').join('')+'</div></div>')}
 let elencoEditando=null;
 function abrirModalElenco(id){
   elencoEditando=id?DB.elenco.find(x=>x.id===id):null;
@@ -124,81 +124,6 @@ function elenco(){
     '<div class="section card"><h2>Regra atual</h2><div class="sub">Integrantes podem ser adicionados ou inativados. A distribuição de personagens e a participação em cada esquete continuam sendo definidas separadamente.</div></div>'+
     '<div id="elencoModal" class="modal" onclick="if(event.target===this)fecharModalElenco()"><div class="modalbox"><div class="modalhead"><div><div class="eyebrow">Equipe artística</div><h2 id="elencoModalTitle">Novo integrante</h2></div><button class="close" onclick="fecharModalElenco()">×</button></div><div class="formgrid"><div class="field full"><label>Nome completo</label><input id="eNome" placeholder="Ex.: Nome do integrante"></div><div class="field"><label>Nome artístico</label><input id="eArtistico" placeholder="Opcional"></div><div class="field"><label>Função</label><input id="eFuncao" placeholder="Ex.: Ator, atriz, direção"></div><div class="field"><label>Conta na plataforma</label><select id="ePerfil"></select></div><div class="field"><label>Foto</label><input id="eFoto" type="file" accept="image/png,image/jpeg,image/webp"></div><div class="field full"><label>Observações</label><textarea id="eObs" placeholder="Informações úteis sobre o integrante..."></textarea></div></div><div class="modalactions"><button class="filter" onclick="fecharModalElenco()">Cancelar</button><button class="btn" onclick="salvarModalElenco()">Salvar integrante</button></div></div></div>');
 }
-let tarefaEditando=null;
-function producao(){
-  const statuses=['A fazer','Em andamento','Concluído'];
-  const cards=statuses.map(st=>'<div class="col"><div style="display:flex;justify-content:space-between;align-items:center"><h3>'+st+'</h3><button class="filter" onclick="abrirTarefa()">+ Adicionar</button></div>'+
-    (DB.tarefas.filter(x=>x.status===st).map(x=>'<div class="item"><div style="font-weight:800">'+esc(x.titulo)+'</div>'+
-    (x.categoria?'<div class="meta">'+esc(x.categoria)+'</div>':'')+
-    (x.responsavel?'<div class="meta">Responsável: '+esc(x.responsavel)+'</div>':'')+
-    (x.prazo?'<div class="meta">Prazo: '+new Date(x.prazo+'T00:00:00').toLocaleDateString('pt-BR')+'</div>':'')+
-    (x.observacoes?'<div class="meta">'+esc(x.observacoes)+'</div>':'')+
-    '<div style="margin-top:9px"><button class="filter" onclick="abrirTarefa(\''+x.id+'\')">Editar</button> <button class="filter" onclick="excluirTarefa(\''+x.id+'\')">Excluir</button></div></div>').join('')||'<div class="empty">Nenhuma</div>')+
-    '</div>').join('');
-  shell('Produção','Acompanhamento das tarefas da montagem',
-    '<div style="display:flex;justify-content:flex-end;margin-bottom:15px"><button class="btn" onclick="abrirTarefa()">+ Nova tarefa</button></div>'+
-    '<div class="kanban">'+cards+'</div>'+
-    '<div id="tarefaModal" class="modal" onclick="if(event.target===this)fecharTarefa()"><div class="modalbox"><div class="modalhead"><div><div class="eyebrow">Produção</div><h2 id="tarefaTitulo">Nova tarefa</h2></div><button class="close" onclick="fecharTarefa()">×</button></div>'+
-    '<div class="formgrid"><div class="field full"><label>Tarefa</label><input id="tTitulo" placeholder="Ex.: Definir figurinos"></div>'+
-    '<div class="field"><label>Categoria</label><input id="tCategoria" placeholder="Ex.: Figurino, cenário, ensaio"></div>'+
-    '<div class="field"><label>Responsável</label><input id="tResponsavel" placeholder="Nome"></div>'+
-    '<div class="field"><label>Status</label><select id="tStatus"><option>A fazer</option><option>Em andamento</option><option>Concluído</option></select></div>'+
-    '<div class="field"><label>Prazo</label><input id="tPrazo" type="date"></div>'+
-    '<div class="field full"><label>Observações</label><textarea id="tObs" placeholder="Detalhes da tarefa..."></textarea></div></div>'+
-    '<div class="modalactions"><button class="filter" onclick="fecharTarefa()">Cancelar</button><button class="btn" onclick="salvarTarefa()">Salvar tarefa</button></div></div></div>');
-}
-function abrirTarefa(id){
-  tarefaEditando=id?DB.tarefas.find(x=>x.id===id):null;
-  const r=tarefaEditando;
-  document.getElementById('tarefaModal').classList.add('show');
-  document.getElementById('tarefaTitulo').textContent=r?'Editar tarefa':'Nova tarefa';
-  document.getElementById('tTitulo').value=r?.titulo||'';
-  document.getElementById('tCategoria').value=r?.categoria||'';
-  document.getElementById('tResponsavel').value=r?.responsavel||'';
-  document.getElementById('tStatus').value=r?.status||'A fazer';
-  document.getElementById('tPrazo').value=r?.prazo||'';
-  document.getElementById('tObs').value=r?.observacoes||'';
-}
-function fecharTarefa(){const m=document.getElementById('tarefaModal');if(m)m.classList.remove('show');tarefaEditando=null}
-async function salvarTarefa(){
-  const titulo=document.getElementById('tTitulo').value.trim();
-  if(!titulo)return alert('Informe a tarefa.');
-  const payload={titulo,categoria:document.getElementById('tCategoria').value.trim(),responsavel:document.getElementById('tResponsavel').value.trim(),status:document.getElementById('tStatus').value,prazo:document.getElementById('tPrazo').value||null,observacoes:document.getElementById('tObs').value.trim()};
-  const r=tarefaEditando
-    ? await sbClient.from('tarefas_producao').update(payload).eq('id',tarefaEditando.id)
-    : await sbClient.from('tarefas_producao').insert(payload);
-  if(r.error)return alert('Não foi possível salvar a tarefa: '+r.error.message);
-  fecharTarefa();await load();go('producao');
-}
-async function excluirTarefa(id){
-  const row=DB.tarefas.find(x=>x.id===id);
-  if(!row||!confirm('Excluir a tarefa "'+row.titulo+'"?'))return;
-  const r=await sbClient.from('tarefas_producao').delete().eq('id',id);
-  if(r.error)return alert('Não foi possível excluir: '+r.error.message);
-  await load();go('producao');
-}
-let divulgacaoEditando=null;
-function divulgacao(){
-  const lista=(DB.divulgacao||[]).slice().sort((a,b)=>(a.data_publicacao||'9999').localeCompare(b.data_publicacao||'9999'));
-  const linhas=lista.map(x=>'<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:15px"><div><h3 style="margin:0 0 6px">'+esc(x.titulo)+'</h3><div class="meta">'+esc(x.canal||'Canal a definir')+' · '+(x.data_publicacao?new Date(x.data_publicacao+'T00:00:00').toLocaleDateString('pt-BR'):'Data a definir')+' · '+esc(x.status||'Planejado')+'</div>'+(x.responsavel?'<div class="meta">Responsável: '+esc(x.responsavel)+'</div>':'')+(x.observacoes?'<div class="meta">'+esc(x.observacoes)+'</div>':'')+'</div><div><button class="filter" onclick="abrirDivulgacao(\''+x.id+'\')">Editar</button> <button class="filter" onclick="excluirDivulgacao(\''+x.id+'\')">Excluir</button></div></div></div>').join('');
-  shell('Divulgação','Calendário e acompanhamento da comunicação do espetáculo','<div style="display:flex;justify-content:flex-end;margin-bottom:15px"><button class="btn" onclick="abrirDivulgacao()">+ Nova publicação</button></div>'+(linhas||'<div class="empty">Nenhuma ação de divulgação cadastrada.</div>')+
-  '<div id="divModal" class="modal" onclick="if(event.target===this)fecharDivulgacao()"><div class="modalbox"><div class="modalhead"><div><div class="eyebrow">Divulgação</div><h2 id="divTitulo">Nova publicação</h2></div><button class="close" onclick="fecharDivulgacao()">×</button></div><div class="formgrid"><div class="field full"><label>Título / ação</label><input id="dTitulo" placeholder="Ex.: Post de lançamento"></div><div class="field"><label>Canal</label><select id="dCanal"><option>Instagram</option><option>TikTok</option><option>Facebook</option><option>Site</option><option>WhatsApp</option><option>Imprensa</option><option>Outro</option></select></div><div class="field"><label>Data de publicação</label><input id="dData" type="date"></div><div class="field"><label>Status</label><select id="dStatus"><option>Planejado</option><option>Em produção</option><option>Agendado</option><option>Publicado</option><option>Cancelado</option></select></div><div class="field"><label>Responsável</label><input id="dResponsavel" placeholder="Nome"></div><div class="field full"><label>Observações</label><textarea id="dObs" placeholder="Briefing, link, formato ou observações..."></textarea></div></div><div class="modalactions"><button class="filter" onclick="fecharDivulgacao()">Cancelar</button><button class="btn" onclick="salvarDivulgacao()">Salvar</button></div></div></div>');
-}
-function abrirDivulgacao(id){divulgacaoEditando=id?(DB.divulgacao||[]).find(x=>x.id===id):null;const r=divulgacaoEditando;document.getElementById('divModal').classList.add('show');document.getElementById('divTitulo').textContent=r?'Editar publicação':'Nova publicação';document.getElementById('dTitulo').value=r?.titulo||'';document.getElementById('dCanal').value=r?.canal||'Instagram';document.getElementById('dData').value=r?.data_publicacao||'';document.getElementById('dStatus').value=r?.status||'Planejado';document.getElementById('dResponsavel').value=r?.responsavel||'';document.getElementById('dObs').value=r?.observacoes||''}
-function fecharDivulgacao(){const m=document.getElementById('divModal');if(m)m.classList.remove('show');divulgacaoEditando=null}
-async function salvarDivulgacao(){const titulo=document.getElementById('dTitulo').value.trim();if(!titulo)return alert('Informe o título da ação.');const payload={titulo,canal:document.getElementById('dCanal').value,data_publicacao:document.getElementById('dData').value||null,status:document.getElementById('dStatus').value,responsavel:document.getElementById('dResponsavel').value.trim(),observacoes:document.getElementById('dObs').value.trim()};const r=divulgacaoEditando?await sbClient.from('divulgacao').update(payload).eq('id',divulgacaoEditando.id):await sbClient.from('divulgacao').insert(payload);if(r.error)return alert('Não foi possível salvar: '+r.error.message);fecharDivulgacao();await load();go('divulgacao')}
-async function excluirDivulgacao(id){if(!confirm('Excluir esta ação de divulgação?'))return;const r=await sbClient.from('divulgacao').delete().eq('id',id);if(r.error)return alert('Não foi possível excluir: '+r.error.message);await load();go('divulgacao')}
-let orcamentoEditando=null;
-function orcamento(){
-  const lista=(DB.orcamento||[]).slice().sort((a,b)=>(a.categoria||'').localeCompare(b.categoria||'')||(a.descricao||'').localeCompare(b.descricao||''));
-  const total=lista.reduce((s,x)=>s+(Number(x.valor)||0),0);
-  const linhas=lista.map(x=>'<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:15px"><div><h3 style="margin:0 0 6px">'+esc(x.descricao)+'</h3><div class="meta">'+esc(x.categoria||'Sem categoria')+' · '+esc(x.status||'Previsto')+'</div>'+(x.observacoes?'<div class="meta">'+esc(x.observacoes)+'</div>':'')+'</div><div style="text-align:right"><strong>R$ '+(Number(x.valor)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</strong><div style="margin-top:8px"><button class="filter" onclick="abrirOrcamento(\''+x.id+'\')">Editar</button> <button class="filter" onclick="excluirOrcamento(\''+x.id+'\')">Excluir</button></div></div></div></div>').join('');
-  shell('Orçamento','Controle financeiro da montagem','<div class="grid"><div class="stat"><b>R$ '+total.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</b><span>Total previsto</span></div><div class="stat"><b>'+lista.length+'</b><span>Lançamentos</span></div></div><div style="display:flex;justify-content:flex-end;margin:15px 0"><button class="btn" onclick="abrirOrcamento()">+ Novo lançamento</button></div>'+(linhas||'<div class="empty">Nenhum lançamento cadastrado.</div>')+'<div id="orcModal" class="modal" onclick="if(event.target===this)fecharOrcamento()"><div class="modalbox"><div class="modalhead"><div><div class="eyebrow">Financeiro</div><h2 id="orcTitulo">Novo lançamento</h2></div><button class="close" onclick="fecharOrcamento()">×</button></div><div class="formgrid"><div class="field full"><label>Descrição</label><input id="oDescricao" placeholder="Ex.: Cachês do elenco"></div><div class="field"><label>Categoria</label><input id="oCategoria" placeholder="Ex.: Elenco, figurino, divulgação"></div><div class="field"><label>Valor</label><input id="oValor" type="number" min="0" step="0.01" placeholder="0,00"></div><div class="field"><label>Status</label><select id="oStatus"><option>Previsto</option><option>Aprovado</option><option>Pago</option><option>Cancelado</option></select></div><div class="field full"><label>Observações</label><textarea id="oObs" placeholder="Detalhes do lançamento..."></textarea></div></div><div class="modalactions"><button class="filter" onclick="fecharOrcamento()">Cancelar</button><button class="btn" onclick="salvarOrcamento()">Salvar lançamento</button></div></div></div>');
-}
-function abrirOrcamento(id){orcamentoEditando=id?(DB.orcamento||[]).find(x=>x.id===id):null;const r=orcamentoEditando;document.getElementById('orcModal').classList.add('show');document.getElementById('orcTitulo').textContent=r?'Editar lançamento':'Novo lançamento';document.getElementById('oDescricao').value=r?.descricao||'';document.getElementById('oCategoria').value=r?.categoria||'';document.getElementById('oValor').value=r?.valor??'';document.getElementById('oStatus').value=r?.status||'Previsto';document.getElementById('oObs').value=r?.observacoes||''}
-function fecharOrcamento(){const m=document.getElementById('orcModal');if(m)m.classList.remove('show');orcamentoEditando=null}
-async function salvarOrcamento(){const descricao=document.getElementById('oDescricao').value.trim();if(!descricao)return alert('Informe a descrição.');const payload={descricao,categoria:document.getElementById('oCategoria').value.trim(),valor:Number(document.getElementById('oValor').value)||0,status:document.getElementById('oStatus').value,observacoes:document.getElementById('oObs').value.trim()};const r=orcamentoEditando?await sbClient.from('orcamento').update(payload).eq('id',orcamentoEditando.id):await sbClient.from('orcamento').insert(payload);if(r.error)return alert('Não foi possível salvar: '+r.error.message);fecharOrcamento();await load();go('orcamento')}
-async function excluirOrcamento(id){if(!confirm('Excluir este lançamento do orçamento?'))return;const r=await sbClient.from('orcamento').delete().eq('id',id);if(r.error)return alert('Não foi possível excluir: '+r.error.message);await load();go('orcamento')}
 let checklistEditando=null;
 function checklist(){
   const lista=(DB.checklist||[]).slice().sort((a,b)=>Number(a.concluido)-Number(b.concluido)||(a.prazo||'9999').localeCompare(b.prazo||'9999'));
