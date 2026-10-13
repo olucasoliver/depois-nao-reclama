@@ -47,8 +47,10 @@ function blocoPendencias() {
   if (eGestao()) {
     const semResp = proximos.reduce((s, x) => s + contagemRespostas(x).sem, 0);
     if (semResp) add(semResp + ' resposta' + (semResp > 1 ? 's' : '') + ' de convocação pendente' + (semResp > 1 ? 's' : ''), 'ensaios');
-    const aguardando = (DB.divulgacao || []).filter(d => d.status === 'Aguardando aprovação').length;
-    if (aguardando) add(aguardando + ' peça' + (aguardando > 1 ? 's' : '') + ' de divulgação aguardando aprovação', 'divulgacao');
+    const pend = pedidosPendentes().length, ajustes = meusAjustes().length;
+    if (eDirecao() && pend) linhas.unshift('<a href="#" class="pend urgente" onclick="go(\'aprovacoes\');return false"><b>' + pend + ' pedido' + (pend > 1 ? 's' : '') + '</b> aguardando sua aprovação</a>');
+    if (!eDirecao() && ajustes) linhas.unshift('<a href="#" class="pend urgente" onclick="go(\'aprovacoes\');return false"><b>' + ajustes + ' pedido' + (ajustes > 1 ? 's' : '') + '</b> com ajustes pedidos pela direção</a>');
+    if (!eDirecao() && pend) add(pend + ' pedido' + (pend > 1 ? 's' : '') + ' aguardando a direção', 'aprovacoes');
   }
   return '<div class="card"><h2>Pendências</h2>' + (linhas.length ? linhas.join('') : '<div class="empty">Nada pendente por enquanto.</div>') + '</div>';
 }
@@ -82,10 +84,12 @@ function producao() {
         (t.categoria ? '<div class="meta">' + esc(t.categoria) + '</div>' : '') +
         (t.responsavel ? '<div class="meta">Responsável: ' + esc(t.responsavel) + '</div>' : '') +
         prazoTag(t) +
+        (t.precisa_aprovacao ? '<div class="meta">' + (chipAprovacao(t.aprovacao) || '<span class="chip">Precisa de aprovação</span>') + '</div>' : '') +
         (t.observacoes ? '<div class="meta">' + esc(t.observacoes) + '</div>' : '') +
         (gest ? '<div class="itemAcoes">' +
           (i > 0 ? '<button class="filter" title="Voltar" onclick="moverTarefa(\'' + t.id + '\',\'' + STATUS_TAREFA[i - 1] + '\')">←</button>' : '') +
           (i < 2 ? '<button class="filter" title="Avançar" onclick="moverTarefa(\'' + t.id + '\',\'' + STATUS_TAREFA[i + 1] + '\')">→</button>' : '') +
+          (t.precisa_aprovacao && t.status !== 'Concluído' ? botaoEnviarAprovacao('Tarefa', t) : '') +
           '<button class="filter" onclick="abrirTarefa(\'' + t.id + '\')">Editar</button>' +
           '<button class="filter" onclick="excluirTarefa(\'' + t.id + '\')">Excluir</button></div>' : '') +
         '</div>').join('') || '<div class="empty">Nenhuma</div>') + '</div>';
@@ -108,7 +112,8 @@ function modalTarefa() {
     '<div class="field"><label>Responsável</label><input id="tResponsavel" list="listaEquipe" placeholder="Nome"></div>' +
     '<div class="field"><label>Status</label><select id="tStatus">' + STATUS_TAREFA.map(s => '<option>' + s + '</option>').join('') + '</select></div>' +
     '<div class="field"><label>Prazo</label><input id="tPrazo" type="date"></div>' +
-    '<div class="field full"><label>Observações</label><textarea id="tObs" placeholder="Detalhes da tarefa..."></textarea></div></div>' +
+    '<div class="field full"><label>Observações</label><textarea id="tObs" placeholder="Detalhes da tarefa..."></textarea></div>' +
+    '<label class="checkLinha full"><input type="checkbox" id="tPrecisa"> Precisa da aprovação da direção antes de ser concluída</label></div>' +
     '<div class="modalactions"><button class="filter" onclick="fecharTarefa()">Cancelar</button><button class="btn" onclick="salvarTarefa()">Salvar tarefa</button></div>' +
     datalist('listaEquipe', nomesDaEquipe()) + datalist('listaCatTarefa', [...new Set(DB.tarefas.map(t => t.categoria).filter(Boolean))]) +
     '</div></div>';
@@ -124,6 +129,8 @@ function abrirTarefa(id) {
   document.getElementById('tStatus').value = r && r.status ? r.status : 'A fazer';
   document.getElementById('tPrazo').value = r ? r.prazo || '' : '';
   document.getElementById('tObs').value = r ? r.observacoes || '' : '';
+  const ck = document.getElementById('tPrecisa');
+  ck.checked = !!(r && r.precisa_aprovacao); ck.disabled = !!(r && r.precisa_aprovacao && !eDirecao());
 }
 function fecharTarefa() { const m = document.getElementById('tarefaModal'); if (m) m.classList.remove('show'); tarefaEditando = null; }
 async function salvarTarefa() {
@@ -132,7 +139,8 @@ async function salvarTarefa() {
   const payload = {
     titulo, categoria: document.getElementById('tCategoria').value.trim(), responsavel: document.getElementById('tResponsavel').value.trim(),
     status: document.getElementById('tStatus').value, prazo: document.getElementById('tPrazo').value || null,
-    observacoes: document.getElementById('tObs').value.trim()
+    observacoes: document.getElementById('tObs').value.trim(),
+    precisa_aprovacao: document.getElementById('tPrecisa').checked
   };
   const r = tarefaEditando ? await sbClient.from('tarefas_producao').update(payload).eq('id', tarefaEditando.id)
                            : await sbClient.from('tarefas_producao').insert(payload);
@@ -184,8 +192,10 @@ function orcamento() {
     '<div class="meta">' + [esc(x.categoria || 'Sem categoria'), x.data ? dataCurta(x.data) : null, x.observacoes ? esc(x.observacoes) : null].filter(Boolean).join(' · ') + '</div></div>' +
     '<span class="chip ' + (ehReceita(x) ? 'ok' : '') + '">' + (ehReceita(x) ? 'Receita' : 'Despesa') + '</span>' +
     '<span class="chip ' + (realizado(x) ? 'ok' : x.status === 'Cancelado' ? 'nao' : '') + '">' + esc(x.status || 'Previsto') + '</span>' +
+    (!ehReceita(x) && x.status !== 'Cancelado' && x.aprovacao !== 'aprovado' ? chipAprovacao(x.aprovacao) : '') +
     '<b class="orcValor ' + (ehReceita(x) ? 'pos' : '') + '">' + (ehReceita(x) ? '+ ' : '- ') + moeda(x.valor) + '</b>' +
-    '<div style="display:flex;gap:6px"><button class="filter" onclick="abrirOrcamento(\'' + x.id + '\')">Editar</button>' +
+    '<div style="display:flex;gap:6px;flex-wrap:wrap">' + (!ehReceita(x) && x.status !== 'Cancelado' ? botaoEnviarAprovacao('Orçamento', x) : '') +
+    '<button class="filter" onclick="abrirOrcamento(\'' + x.id + '\')">Editar</button>' +
     '<button class="filter" onclick="excluirOrcamento(\'' + x.id + '\')">Excluir</button></div></div>').join('');
 
   shell('Orçamento', 'Despesas e receitas da montagem · cancelados não entram na conta',
@@ -203,6 +213,7 @@ function orcamento() {
 function modalOrcamento() {
   return '<div id="orcModal" class="modal" onclick="if(event.target===this)fecharOrcamento()"><div class="modalbox">' +
     '<div class="modalhead"><div><div class="eyebrow">Financeiro</div><h2 id="orcTitulo">Novo lançamento</h2></div><button class="close" onclick="fecharOrcamento()">×</button></div>' +
+    (eDirecao() ? '' : '<div class="notice">Gastos só podem ficar como <b>Aprovado</b> ou <b>Pago</b> depois da aprovação da direção. Salve como Previsto e use <b>Enviar para aprovação</b>.</div>') +
     '<div class="formgrid">' +
     '<div class="field"><label>Tipo</label><select id="oTipo"><option>Despesa</option><option>Receita</option></select></div>' +
     '<div class="field"><label>Status</label><select id="oStatus">' + STATUS_ORC.map(s => '<option>' + s + '</option>').join('') + '</select></div>' +
@@ -273,8 +284,9 @@ function divulgacao() {
     '<div class="meta">' + [esc(x.canal || 'Canal a definir'), x.responsavel ? 'Responsável: ' + esc(x.responsavel) : null].filter(Boolean).join(' · ') + '</div>' +
     (x.observacoes ? '<div class="meta">' + esc(x.observacoes) + '</div>' : '') +
     (x.link ? '<div class="meta"><a href="' + attr(x.link) + '" target="_blank" rel="noopener" class="tituloLink">Ver arte ↗</a></div>' : '') + '</div>' +
-    chipStatus(x.status) +
-    (dir && x.status === 'Aguardando aprovação' ? '<button class="btn" onclick="aprovarDivulgacao(\'' + x.id + '\')">Aprovar</button>' : '') +
+    chipStatus(x.status) + (['ajustes', 'recusado'].includes(x.aprovacao) ? chipAprovacao(x.aprovacao) : '') +
+    (dir && (x.status === 'Aguardando aprovação' || x.aprovacao === 'pendente') ? '<button class="btn" onclick="aprovarDivulgacao(\'' + x.id + '\')">Aprovar</button>' : '') +
+    (x.status !== 'Cancelado' ? botaoEnviarAprovacao('Divulgação', x) : '') +
     (gest ? '<div style="display:flex;gap:6px"><button class="filter" onclick="abrirDivulgacao(\'' + x.id + '\')">Editar</button>' +
       '<button class="filter" onclick="excluirDivulgacao(\'' + x.id + '\')">Excluir</button></div>' : '') + '</div>';
   shell('Divulgação', 'Campanha do espetáculo, organizada por fase',
@@ -329,13 +341,20 @@ async function salvarDivulgacao() {
     responsavel: document.getElementById('dResponsavel').value.trim(), link: link || null,
     observacoes: document.getElementById('dObs').value.trim()
   };
-  const r = divulgacaoEditando ? await sbClient.from('divulgacao').update(payload).eq('id', divulgacaoEditando.id)
-                               : await sbClient.from('divulgacao').insert(payload);
+  const r = divulgacaoEditando ? await sbClient.from('divulgacao').update(payload).eq('id', divulgacaoEditando.id).select().single()
+                               : await sbClient.from('divulgacao').insert(payload).select().single();
   if (r.error) return alert('Não foi possível salvar: ' + r.error.message);
+  if (!eDirecao() && r.data && payload.status === 'Aguardando aprovação' && r.data.aprovacao !== 'pendente') {
+    const e = await sbClient.rpc('solicitar_aprovacao', { p_tipo: 'Divulgação', p_ref: String(r.data.id), p_titulo: titulo,
+      p_descricao: payload.observacoes || null, p_valor: null, p_link: payload.link });
+    if (e.error) alert('A ação foi salva, mas não foi possível enviar para aprovação: ' + e.error.message);
+  }
   fecharDivulgacao(); await load();
 }
 async function aprovarDivulgacao(id) {
-  const r = await sbClient.from('divulgacao').update({ status: 'Aprovado' }).eq('id', id);
+  const pedido = pedidoAberto('Divulgação', id);
+  const r = pedido ? await sbClient.rpc('responder_aprovacao', { p_id: pedido.id, p_decisao: 'aprovado', p_comentario: null })
+                   : await sbClient.from('divulgacao').update({ status: 'Aprovado' }).eq('id', id);
   if (r.error) return alert('Não foi possível aprovar: ' + r.error.message);
   await load();
 }
@@ -358,6 +377,7 @@ async function excluirDivulgacao(id) {
     '.cancelado{opacity:.55}.stat b.neg{color:#b3261e}' +
     '.barra{margin:12px 0}.barraTopo{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}' +
     '.barraFundo{height:8px;background:#eee8eb;border-radius:99px;overflow:hidden}.barraValor{height:100%;background:var(--pink);border-radius:99px}' +
-    '.divData{font-weight:900;font-size:15px;min-width:64px}';
+    '.divData{font-weight:900;font-size:15px;min-width:64px}' +
+    '.checkLinha{display:flex;align-items:center;gap:8px;font-size:14px;grid-column:1/-1;cursor:pointer}.checkLinha input{accent-color:var(--pink);width:17px;height:17px}';
   document.head.appendChild(s);
 })();
