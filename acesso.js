@@ -115,7 +115,14 @@ async function criarConta() {
       : 'Não foi possível criar a conta: ' + r.error.message);
   }
   if (!r.data.session) {
-    return alert('A conta foi criada, mas o Supabase ainda está pedindo confirmação por e-mail. Avise a direção para desligar a confirmação de e-mail.');
+    /* Sem sessão: o e-mail já tinha conta (o Supabase não avisa isso) ou a conta
+       ainda precisa de confirmação. Tenta entrar com os mesmos dados. */
+    const e = await sbClient.auth.signInWithPassword({ email, password: senha });
+    if (e.error) {
+      travarBotao(''); const b = document.getElementById('loginBtn'); if (b) b.textContent = 'Criar conta e pedir acesso';
+      if (/confirm/i.test(e.error.message)) return alert('Sua conta foi criada, mas ainda precisa ser liberada pela direção no Supabase. Avise a direção e depois entre em "Já tenho conta".');
+      return alert('Este e-mail já tem conta. Entre em "Já tenho conta". Se não lembrar a senha, peça para a direção redefinir.');
+    }
   }
   const a = await sbClient.rpc('solicitar_acesso', { p_nome: nome });
   if (a.error) alert('Conta criada, mas o pedido de acesso falhou: ' + a.error.message);
