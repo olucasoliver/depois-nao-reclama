@@ -316,13 +316,13 @@ function espetaculo() {
   const conflitoEm = new Map(conflitos.map(c => [c.posicao, c]));
   const elencoEmCena = new Set(lista.flatMap(x => elencoIdsDe(x.id)));
 
-  const stats = '<div class="grid">' +
+  const stats = '<div class="grid naoImprimir">' +
     '<div class="stat"><b>' + lista.length + '</b><span>Esquetes na grade</span></div>' +
     '<div class="stat"><b>' + (total ? fmtDur(total) : '—') + '</b><span>Tempo de cena' + (semDur ? ' · ' + semDur + ' sem duração' : '') + '</span></div>' +
     '<div class="stat"><b>' + (inicio !== null && total ? fmtHora(inicio + total) : '—') + '</b><span>' + (inicio !== null ? 'Término previsto · início ' + fmtHora(inicio) : 'Término: cadastre o início da sessão') + '</span></div>' +
     '<div class="stat"><b>' + conflitos.length + '</b><span>Entradas seguidas</span></div></div>';
 
-  const avisos = conflitos.length ? '<div class="notice section"><b>Atenção às trocas:</b> ' + conflitos.map(c =>
+  const avisos = conflitos.length ? '<div class="notice section naoImprimir"><b>Atenção às trocas:</b> ' + conflitos.map(c =>
     c.pessoas.map(nomeElenco).join(', ') + ' sai' + (c.pessoas.length > 1 ? 'em' : '') + ' de "' + esc(c.de.titulo) + '" e entra' + (c.pessoas.length > 1 ? 'm' : '') +
     ' direto em "' + esc(c.para.titulo) + '"').join('; ') + '. Confira tempo de troca de figurino e posicionamento.</div>' : '';
 
@@ -349,7 +349,7 @@ function espetaculo() {
     posicoes: lista.map((x, i) => elencoIdsDe(x.id).includes(id) ? i + 1 : null).filter(Boolean)
   })).sort((a, b) => b.posicoes.length - a.posicoes.length || a.nome.localeCompare(b.nome));
   const semCena = DB.elenco.filter(e => !elencoEmCena.has(e.id));
-  const blocoPart = '<div class="section card"><h2>Participação do elenco</h2>' +
+  const blocoPart = '<div class="section card naoImprimir"><h2>Participação do elenco</h2>' +
     participacao.map(p => '<div class="linha"><b style="min-width:150px">' + esc(p.nome) + '</b><span class="meta">' + p.posicoes.length +
       ' esquete' + (p.posicoes.length > 1 ? 's' : '') + ' · posições ' + p.posicoes.join(', ') + '</span></div>').join('') +
     (semCena.length ? '<div class="meta" style="margin-top:10px">Ainda sem cena na grade: ' + semCena.map(e => esc(e.nome_artistico || e.nome)).join(', ') + '</div>' : '') + '</div>';
@@ -363,6 +363,7 @@ function espetaculo() {
     cabImpressao + stats + avisos +
     (dir ? '<div class="meta section noprint">Arraste pela alça ⠿ ou use as setas para mudar a ordem.</div>' : '') +
     '<div class="section" id="gradeLista">' + linhas + '</div>' + blocoPart);
+  const eb = document.querySelector('#main .top .eyebrow'); if (eb) eb.classList.add('naoImprimir');
   ativarArrastarGrade();
 }
 
@@ -383,7 +384,7 @@ function espetaculo() {
     '.gradeNum{font-size:24px;font-weight:900;min-width:38px;text-align:center}' +
     '.alca{cursor:grab;font-size:22px;line-height:1;color:var(--muted);padding:6px 4px;touch-action:none;user-select:none}.alca:active{cursor:grabbing}' +
     '.soImpressao{display:none}' +
-    '@media print{.soImpressao{display:block;font-size:12px;color:#555;margin:-6px 0 14px}.alca,.gradeAcoes,.btn,.filter{display:none!important}' +
+    '@media print{.naoImprimir{display:none!important}.soImpressao{display:block;font-size:12px;color:#555;margin:-6px 0 14px}.alca,.gradeAcoes,.btn,.filter{display:none!important}' +
     '.gradeLinha{break-inside:avoid;page-break-inside:avoid;padding:10px 14px;margin-bottom:6px}.grid{gap:8px;grid-template-columns:repeat(4,1fr)!important}.stat{padding:10px 14px}.stat b{font-size:22px}' +
     '.notice{-webkit-print-color-adjust:exact;print-color-adjust:exact}.gradeLinha .alerta{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
     '.gradeLinha.arrastando{opacity:.35}.gradeLinha.escolhida{box-shadow:0 10px 30px #0002}' +
