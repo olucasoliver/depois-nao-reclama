@@ -69,7 +69,7 @@ function blocoProximoEnsaio(ens) {
 async function responder(ensId, resposta) {
   let motivo = null;
   if (resposta === 'nao_vou') {
-    motivo = prompt('Quer dizer o motivo? (opcional)', '');
+    motivo = await perguntar('Quer dizer o motivo? (opcional)', '', { ok: 'Enviar resposta' });
     if (motivo === null) return;
   }
   const r = await sbClient.rpc('responder_convocacao', { p_ensaio: String(ensId), p_resposta: resposta, p_motivo: motivo });
@@ -198,9 +198,9 @@ function copiarConvocacao(id) {
   if (x.observacoes) linhas.push('', x.observacoes);
   linhas.push('', 'Confirme sua presença na Central de Produção: ' + location.href.split('#')[0]);
   const texto = linhas.join('\n');
-  const ok = () => alert('Convocação copiada. É só colar no WhatsApp.');
-  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(ok, () => prompt('Copie o texto abaixo:', texto));
-  else prompt('Copie o texto abaixo:', texto);
+  const ok = () => avisar('Convocação copiada. É só colar no WhatsApp.');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(ok, () => mostrarTexto('Copie o texto abaixo', texto));
+  else mostrarTexto('Copie o texto abaixo', texto);
 }
 
 /* ---------- Modal: novo / editar ensaio ---------- */
@@ -274,7 +274,7 @@ async function salvarModalEnsaio() {
 }
 async function excluirEnsaio(id) {
   const row = DB.ensaios.find(x => x.id === id); if (!row) return;
-  if (!confirm('Excluir o ensaio "' + row.titulo + '"? As respostas e presenças dele também serão apagadas.')) return;
+  if (!await confirmar('Excluir o ensaio "' + row.titulo + '"? As respostas e presenças dele também serão apagadas.')) return;
   const r = await sbClient.from('ensaios').delete().eq('id', id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
   ensaioAtual = null; await load(); go('ensaios');

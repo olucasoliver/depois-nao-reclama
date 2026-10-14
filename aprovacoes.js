@@ -76,11 +76,11 @@ function aprovacoes() {
 async function decidir(id, decisao) {
   let comentario = '';
   if (decisao === 'ajustes') {
-    comentario = prompt('O que precisa ser ajustado?', '');
+    comentario = await perguntar('O que precisa ser ajustado?', '', { ok: 'Pedir ajustes' });
     if (comentario === null) return;
     if (!comentario.trim()) return alert('Escreva o que precisa ser ajustado.');
   } else {
-    comentario = prompt(decisao === 'aprovado' ? 'Comentário (opcional):' : 'Motivo da recusa (opcional):', '');
+    comentario = await perguntar(decisao === 'aprovado' ? 'Comentário (opcional):' : 'Motivo da recusa (opcional):', '', { ok: decisao === 'aprovado' ? 'Aprovar' : 'Recusar', perigo: decisao !== 'aprovado' });
     if (comentario === null) return;
   }
   const r = await sbClient.rpc('responder_aprovacao', { p_id: id, p_decisao: decisao, p_comentario: comentario });
@@ -88,7 +88,7 @@ async function decidir(id, decisao) {
   await load();
 }
 async function cancelarPedido(id) {
-  if (!confirm('Cancelar este pedido de aprovação?')) return;
+  if (!await confirmar('Cancelar este pedido de aprovação?')) return;
   const r = await sbClient.rpc('cancelar_aprovacao', { p_id: id });
   if (r.error) return alert('Não foi possível cancelar: ' + r.error.message);
   await load();

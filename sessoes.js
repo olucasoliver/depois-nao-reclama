@@ -27,27 +27,30 @@ function blocoSessao() {
   const lista = sessoesOrdenadas(), s = proximaSessao();
   const estreia = lista[0] && s && lista[0].id === s.id;
   if (!s) {
-    return '<div class="section next sessao"><div class="eyebrow" style="color:#f5a7c2">' + (lista.length ? 'Temporada encerrada' : 'Estreia') + '</div>' +
+    return '<div class="section next sessao"><div class="eyebrow">' + (lista.length ? 'Temporada encerrada' : 'Estreia') + '</div>' +
       '<h2 class="sessaoData">Data, local e horários a definir</h2>' +
       '<div style="margin-top:16px"><button class="btn" onclick="abrirSessao()">+ Cadastrar sessão</button></div></div>' + modalSessao();
   }
   let dataExtensa = dataDaSessao(s).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   dataExtensa = dataExtensa.charAt(0).toUpperCase() + dataExtensa.slice(1);
   const outras = lista.filter(x => x.id !== s.id && dataDaSessao(x) >= hojeLocal());
-  return '<div class="section next sessao"><div class="sessaoTopo"><div>' +
-    '<div class="eyebrow" style="color:#f5a7c2">' + (estreia ? 'Estreia' : 'Próxima sessão') + '</div>' +
-    '<h2 class="sessaoData">' + esc(dataExtensa) + '</h2>' +
-    '<div class="sessaoConta">' + contagem(s) + '</div></div>' +
-    '<button class="filter" onclick="abrirSessao(\'' + s.id + '\')">Editar</button></div>' +
+  const dias = Math.round((dataDaSessao(s) - hojeLocal()) / 86400000);
+  const numero = dias === 0 ? 'Hoje' : String(dias);
+  const legenda = dias === 0 ? (estreia ? 'é a estreia' : 'tem sessão') : (dias === 1 ? 'dia para a ' : 'dias para a ') + (estreia ? 'estreia' : 'próxima sessão');
+  return '<div class="section next sessao heroi">' +
+    '<div class="heroiArco">' + (typeof ARCO_SVG !== 'undefined' ? ARCO_SVG : '') + '</div>' +
+    '<div class="heroiConta"><span class="heroiNumero">' + numero + '</span><span class="heroiLegenda">' + legenda + '</span></div>' +
+    '<div class="heroiCorpo"><div class="sessaoTopo"><h2 class="sessaoData">' + esc(dataExtensa) + '</h2>' +
+    (eGestao() ? '<button class="filter claro" onclick="abrirSessao(\'' + s.id + '\')">Editar</button>' : '') + '</div>' +
     '<div class="sessaoInfo">' +
     '<div><span>Local</span>' + esc(s.local || 'A definir') + (s.endereco ? '<small>' + esc(s.endereco) + '</small>' : '') + '</div>' +
     '<div><span>Abertura da casa</span>' + (hora(s.abertura) || 'A definir') + '</div>' +
     '<div><span>Início</span>' + (hora(s.inicio) || 'A definir') + '</div></div>' +
     (s.observacoes ? '<div class="muted" style="margin-top:14px">' + esc(s.observacoes) + '</div>' : '') +
     (outras.length ? '<div class="muted" style="margin-top:14px">Outras sessões: ' + outras.map(x =>
-      esc(dataDaSessao(x).toLocaleDateString('pt-BR')) + (x.inicio ? ' às ' + hora(x.inicio) : '')).join(' · ') + '</div>' : '') +
-    '<div style="margin-top:14px"><button class="filter" onclick="abrirSessao()">+ Nova sessão</button></div>' +
-    '</div>' + modalSessao();
+      esc(dataDaSessao(x).toLocaleDateString('pt-BR')) + (x.inicio ? ' às ' + hora(x.inicio) : '')).join(', ') + '</div>' : '') +
+    (eGestao() ? '<div style="margin-top:16px"><button class="filter claro" onclick="abrirSessao()">+ Nova sessão</button></div>' : '') +
+    '</div></div>' + modalSessao();
 }
 
 function modalSessao() {
@@ -99,7 +102,7 @@ async function salvarSessao() {
 }
 
 async function excluirSessao() {
-  if (!sessaoEditando || !confirm('Excluir esta sessão?')) return;
+  if (!sessaoEditando || !await confirmar('Excluir esta sessão?')) return;
   const r = await sbClient.from('sessoes').delete().eq('id', sessaoEditando.id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
   fecharSessao(); await load(); go('inicio');
