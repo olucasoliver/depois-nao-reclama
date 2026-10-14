@@ -154,7 +154,7 @@ async function moverTarefa(id, status) {
 }
 async function excluirTarefa(id) {
   const row = DB.tarefas.find(x => x.id === id);
-  if (!row || !await confirmar('Excluir a tarefa "' + row.titulo + '"?')) return;
+  if (!row || !confirm('Excluir a tarefa "' + row.titulo + '"?')) return;
   const r = await sbClient.from('tarefas_producao').delete().eq('id', id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
   await load();
@@ -257,7 +257,7 @@ async function salvarOrcamento() {
   fecharOrcamento(); await load();
 }
 async function excluirOrcamento(id) {
-  if (!await confirmar('Excluir este lançamento do orçamento?')) return;
+  if (!confirm('Excluir este lançamento do orçamento?')) return;
   const r = await sbClient.from('orcamento').delete().eq('id', id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
   await load();
@@ -359,7 +359,7 @@ async function aprovarDivulgacao(id) {
   await load();
 }
 async function excluirDivulgacao(id) {
-  if (!await confirmar('Excluir esta ação de divulgação?')) return;
+  if (!confirm('Excluir esta ação de divulgação?')) return;
   const r = await sbClient.from('divulgacao').delete().eq('id', id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
   await load();

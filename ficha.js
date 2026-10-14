@@ -35,7 +35,7 @@ async function salvarFicha(){
   fecharFicha();await load();go('ficha');
 }
 async function excluirFicha(id){
-  if(!await confirmar('Excluir este item da ficha técnica?'))return;
+  if(!confirm('Excluir este item da ficha técnica?'))return;
   const r=await sbClient.from('ficha_tecnica').delete().eq('id',id);
   if(r.error)return alert('Não foi possível excluir: '+r.error.message);
   await load();go('ficha');

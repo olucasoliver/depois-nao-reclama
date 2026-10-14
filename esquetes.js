@@ -144,7 +144,7 @@ async function salvarEsquete() {
 
 async function excluirEsquete(id) {
   const row = DB.esquetes.find(x => x.id === id); if (!row) return;
-  if (!await confirmar('Excluir definitivamente a esquete "' + row.titulo + '"?\n\nPersonagens e necessidades de cena dela também serão apagados.')) return;
+  if (!confirm('Excluir definitivamente a esquete "' + row.titulo + '"?\n\nPersonagens e necessidades de cena dela também serão apagados.')) return;
   const r = await sbClient.from('esquetes').delete().eq('id', id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
   if (row.selecao === 'Selecionada') await renumerarGrade(id);
@@ -230,7 +230,7 @@ async function atribuirPersonagem(id, elenco_id) {
 }
 async function removerPersonagem(id) {
   const p = (DB.personagens || []).find(x => x.id === id);
-  if (!await confirmar('Remover o personagem "' + (p ? p.nome : '') + '"?')) return;
+  if (!confirm('Remover o personagem "' + (p ? p.nome : '') + '"?')) return;
   const r = await sbClient.from('personagens').delete().eq('id', id);
   if (r.error) return alert('Não foi possível remover: ' + r.error.message);
   await load();
@@ -251,7 +251,7 @@ async function marcarItem(id, pronto) {
   await load();
 }
 async function removerItem(id) {
-  if (!await confirmar('Remover este item?')) return;
+  if (!confirm('Remover este item?')) return;
   const r = await sbClient.from('esquete_itens').delete().eq('id', id);
   if (r.error) return alert('Não foi possível remover: ' + r.error.message);
   await load();

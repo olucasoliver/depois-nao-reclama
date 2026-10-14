@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Depois Não Reclama | Central de Produção</title>
-<link rel="preload" href="./assets/fonts/glacial-400.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="./assets/fonts/instrument-serif.woff2" as="font" type="font/woff2" crossorigin><meta name="theme-color" content="#0A0A0A">
 <link rel="icon" type="image/png" href="./assets/logos/favicon.png">
 <style>
 :root{--pink:#d81b60;--pink2:#f06292;--ink:#211d22;--cream:#fff8f2;--muted:#756c73;--line:#eadfe4;--card:#fff;--green:#2e7d5b;--yellow:#fff0bd}
@@ -15,12 +14,12 @@
 <body>
 <div class="app">
 <aside class="side">
-<div class="brand">Depois<br>Não Reclama<img class="brandlogo" src="./assets/logos/arcana-horizontal-cor-web.png" alt="Arcana Produções"><a class="insta" href="https://www.instagram.com/arcana.producoes" target="_blank" rel="noopener">Instagram · @arcana.producoes</a></div>
+<div class="brand">DEPOIS<br>NÃO RECLAMA<img class="brandlogo" src="./assets/logos/arcana-horizontal-branco-web.png" alt="Arcana Produções"><a class="insta" href="https://www.instagram.com/arcana.producoes" target="_blank" rel="noopener">Instagram · @arcana.producoes</a></div>
 <div class="nav" id="nav"></div>
 </aside>
 <main class="main" id="main"></main>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./dialogos.js?v=202610141204"></script><script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script><script src="./ficha.js?v=202610141204"></script><script src="./acesso.js?v=202610141204"></script><script src="./sessoes.js?v=202610141204"></script><script src="./esquetes.js?v=202610141204"></script><script src="./ensaios.js?v=202610141204"></script><script src="./gestao.js?v=202610141204"></script><script src="./final.js?v=202610141204"></script><script src="./aprovacoes.js?v=202610141204"></script><script>const SUPABASE_URL='https://tatcgvmdozofxhxribdn.supabase.co';
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script><script src="./ficha.js?v=202610141039"></script><script src="./acesso.js?v=202610141039"></script><script src="./sessoes.js?v=202610141039"></script><script src="./esquetes.js?v=202610141039"></script><script src="./ensaios.js?v=202610141039"></script><script src="./gestao.js?v=202610141039"></script><script src="./final.js?v=202610141039"></script><script src="./aprovacoes.js?v=202610141039"></script><script>const SUPABASE_URL='https://tatcgvmdozofxhxribdn.supabase.co';
 const SUPABASE_KEY='sb_publishable_Q_OSMySEc1JZaLf5kxGsZA_31mfCKas';
 const sbClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let DB={elenco:[],esquetes:[],ensaios:[],tarefas:[],ficha:[],divulgacao:[],orcamento:[],checklist:[],atribuicoes:[],ensaioEsquetes:[],sessoes:[],personagens:[],itens:[],presencas:[],aprovacoes:[],perfil:null,funcoes:[],perfilFuncoes:[],perfis:[]},page='inicio',filter='Todas',query='',user=null;
@@ -29,7 +28,7 @@ const navItems=[['inicio','Início'],['elenco','Elenco'],['esquetes','Banco de E
 function navPermitido(){const n=pedidosPendentes().length;return navItems.filter(x=>(x[0]!=='orcamento'||eGestao())).concat(eGestao()?[['aprovacoes','Aprovações'+(n?' ('+n+')':'')]]:[]).concat(eDirecao()?[['equipe','Equipe e acessos']]:[])}
 function nav(){document.querySelector('#nav').innerHTML=navPermitido().map(x=>'<button class="'+(page===x[0]?'active':'')+'" onclick="go(\''+x[0]+'\')">'+x[1]+'</button>').join('')+blocoUsuario()}
 function go(p){page=p;nav();render()}
-function shell(t,s,b){document.querySelector('#main').innerHTML='<div class="top"><div><h1 class="title">'+t+'</h1>'+(s?'<div class="sub">'+s+'</div>':'')+'</div></div>'+b;window.scrollTo(0,0)}
+function shell(t,s,b){document.querySelector('#main').innerHTML='<div class="top"><div><div class="eyebrow">Central de Produção</div><div class="title">'+t+'</div><div class="sub">'+s+'</div></div></div>'+b}
 let carregando=null,usuarioCarregado;
 async function load(){if(carregando)return carregando;carregando=carregar().finally(()=>{carregando=null});return carregando}
 async function carregar(){const s=await sbClient.auth.getSession();user=s.data.session?s.data.session.user:null;
@@ -56,7 +55,7 @@ function podeGerenciarEquipe(){return eDirecao()}
 function proximoEnsaio(){const agora=Date.now();return DB.ensaios.filter(x=>x.data_hora&&x.status!=='Cancelado'&&x.status!=='Realizado'&&new Date(x.data_hora).getTime()>=agora).sort((a,b)=>new Date(a.data_hora)-new Date(b.data_hora))[0]||null}
 function dataLocalISO(dt){const p=n=>String(n).padStart(2,'0');return dt.getFullYear()+'-'+p(dt.getMonth()+1)+'-'+p(dt.getDate())}
 function buscarEsquete(valor){query=valor;render();const i=document.getElementById('buscaEsquete');if(i){i.focus();i.setSelectionRange(valor.length,valor.length)}}
-function home(){const reviews=DB.esquetes.filter(x=>x.selecao==='Em avaliação do diretor').length,selected=DB.esquetes.filter(x=>x.selecao==='Selecionada').length,next=proximoEnsaio();shell('Depois Não Reclama','Um espetáculo de esquetes de humor da Arcana Produções',blocoSessao()+'<div class="section two">'+blocoPendencias()+'<div class="next"><div class="eyebrow">Próximo ensaio</div><h2>'+esc(next?next.titulo:'A definir')+'</h2><div class="muted">'+(next?dataEnsaio(next):'Data · horário · local')+'</div>'+(next?blocoProximoEnsaio(next):'')+'</div></div><div class="section grid numeros"><div class="stat"><b>'+selected+'</b><span>Esquetes na grade</span></div><div class="stat"><b>'+DB.esquetes.length+'</b><span>Esquetes no banco</span></div><div class="stat"><b>'+reviews+'</b><span>Em avaliação</span></div><div class="stat"><b>'+DB.elenco.length+'</b><span>Pessoas no elenco</span></div></div><div class="section"><h2>Elenco</h2><div class="cast">'+DB.elenco.map(n=>'<div class="card person"><div class="avatar">'+(n.foto_url?'<img src="'+esc(n.foto_url)+'" alt="'+esc(n.nome)+'">':esc(n.nome.split(' ').map(x=>x[0]).slice(0,2).join('')) )+'</div><b>'+esc(n.nome)+'</b></div>').join('')+'</div></div>')}
+function home(){const reviews=DB.esquetes.filter(x=>x.selecao==='Em avaliação do diretor').length,selected=DB.esquetes.filter(x=>x.selecao==='Selecionada').length,next=proximoEnsaio();shell('Depois Não Reclama','Um espetáculo de esquetes humorísticas · Arcana Produções Artísticas',blocoSessao()+'<div class="section grid"><div class="stat"><b>'+DB.elenco.length+'</b><span>Elenco confirmado</span></div><div class="stat"><b>'+DB.esquetes.length+'</b><span>Esquetes no banco</span></div><div class="stat"><b>'+reviews+'</b><span>Em avaliação</span></div><div class="stat"><b>'+selected+'</b><span>Esquetes selecionadas</span></div></div><div class="section two">'+blocoPendencias()+'<div class="next"><div class="eyebrow" style="color:#f5a7c2">Próximo ensaio</div><h2>'+esc(next?next.titulo:'A definir')+'</h2><div class="muted">'+(next?dataEnsaio(next):'Data · horário · local')+'</div>'+(next?blocoProximoEnsaio(next):'')+'</div></div><div class="section"><h2>Elenco confirmado</h2><div class="cast">'+DB.elenco.map(n=>'<div class="card person"><div class="avatar">'+(n.foto_url?'<img src="'+esc(n.foto_url)+'" alt="'+esc(n.nome)+'">':esc(n.nome.split(' ').map(x=>x[0]).slice(0,2).join('')) )+'</div><b>'+esc(n.nome)+'</b></div>').join('')+'</div></div>')}
 let elencoEditando=null;
 function abrirModalElenco(id){
   elencoEditando=id?DB.elenco.find(x=>x.id===id):null;
@@ -130,10 +129,10 @@ function abrirChecklist(id){checklistEditando=id?(DB.checklist||[]).find(x=>x.id
 function fecharChecklist(){const m=document.getElementById('checkModal');if(m)m.classList.remove('show');checklistEditando=null}
 async function salvarChecklist(){const item=document.getElementById('cItem').value.trim();if(!item)return alert('Informe o item.');const payload={item,categoria:document.getElementById('cCategoria').value.trim(),responsavel:document.getElementById('cResponsavel').value.trim(),prazo:document.getElementById('cPrazo').value||null,concluido:document.getElementById('cConcluido').value==='true'};const r=checklistEditando?await sbClient.from('checklist').update(payload).eq('id',checklistEditando.id):await sbClient.from('checklist').insert(payload);if(r.error)return alert('Não foi possível salvar: '+r.error.message);fecharChecklist();await load();go('checklist')}
 async function alternarChecklist(id,concluido){const r=await sbClient.from('checklist').update({concluido}).eq('id',id);if(r.error)return alert('Não foi possível atualizar: '+r.error.message);await load();go('checklist')}
-async function excluirChecklist(id){if(!await confirmar('Excluir este item do checklist?'))return;const r=await sbClient.from('checklist').delete().eq('id',id);if(r.error)return alert('Não foi possível excluir: '+r.error.message);await load();go('checklist')}
+async function excluirChecklist(id){if(!confirm('Excluir este item do checklist?'))return;const r=await sbClient.from('checklist').delete().eq('id',id);if(r.error)return alert('Não foi possível excluir: '+r.error.message);await load();go('checklist')}
 function funcoesDaPessoa(pid){return DB.perfilFuncoes.filter(x=>x.perfil_id===pid).map(x=>DB.funcoes.find(f=>f.id===x.funcao_id)).filter(Boolean)}
  function generic(t,s,b){shell(t,s,b)}
 let loginCooldownUntil=0;
 
-nav();load();</script><script src="./navegacao.js?v=202610141204"></script><link rel="stylesheet" href="./tema.css?v=202610141204">
+nav();load();</script>
 </body></html>
