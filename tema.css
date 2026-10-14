@@ -265,3 +265,63 @@ input[type=checkbox] { accent-color: var(--cobalto) !important; }
 /* Campos dentro de áreas coloridas ficam brancos, para aparecerem */
 .card .inline, .card input:not([type=checkbox]), .card select, .card textarea, .col input, .acesso .field input { background: var(--branco); }
 .card .inline:focus, .card input:focus, .card select:focus, .card textarea:focus { border-color: var(--cobalto); }
+
+/* =====================================================================
+   Ajuste: fundo branco, variações de azul, preto só em detalhes,
+   sem itálico.
+   ===================================================================== */
+:root { --azulClaro: #F3F8FF; --azulMedio: #D6E7FF; --cobaltoEscuro: #1F2FA8; }
+i, em, .heroiNumero { font-style: normal !important; }
+i { color: var(--texto2); }
+
+/* Barra lateral clara */
+.side { background: var(--azulClaro); color: var(--preto); border-right: 1px solid var(--azulMedio); }
+.brand { color: var(--preto); }
+.brandlogo { opacity: 1; }
+.insta { color: var(--cobalto); }
+.insta:hover { color: var(--cobaltoEscuro); }
+.nav button { color: var(--texto2); }
+.nav button:hover { background: var(--azulMedio); color: var(--preto); }
+.nav button.active { background: var(--cobalto); color: var(--branco); }
+.usuario { border-top-color: var(--azulMedio); color: var(--texto2); }
+.usuario b { color: var(--preto); }
+.usuario button { border-color: var(--azulMedio); color: var(--preto); background: var(--branco); }
+.usuario button:hover { border-color: var(--cobalto); color: var(--cobalto); }
+
+/* Blocos de destaque em azul */
+.next { background: var(--azul); color: var(--preto); }
+.next h2 { color: var(--preto); }
+.next .muted { color: #2B3550; }
+.next .eyebrow, .next .eyebrow[style] { color: var(--cobaltoEscuro) !important; }
+.filter.claro, .sessao .filter { background: var(--branco); border: 1.5px solid transparent; color: var(--preto); }
+.filter.claro:hover, .sessao .filter:hover { border-color: var(--cobalto); color: var(--cobalto); }
+
+.heroi { background: var(--cobalto); color: var(--branco); }
+.heroiArco { color: #3D53EA; }
+.heroiArco .arcoMiolo { fill: #3D53EA; }
+.heroiNumero { color: var(--branco); }
+.heroiLegenda { color: var(--azul); }
+.sessaoData { color: var(--branco); }
+.sessaoInfo { border-top-color: rgba(255, 255, 255, .25); }
+.sessaoInfo span, .sessaoInfo small { color: var(--azul); }
+.heroi .muted { color: var(--azul); }
+.heroi .filter.claro { background: transparent; border-color: rgba(255, 255, 255, .5); color: var(--branco); }
+.heroi .filter.claro:hover { background: var(--branco); color: var(--cobalto); border-color: var(--branco); }
+
+/* Preto só como detalhe */
+.filter.active { background: var(--cobalto); border-color: var(--cobalto); color: var(--branco); }
+.filter:hover { border-color: var(--cobalto); }
+.naGrade { background: var(--cobalto); color: var(--branco); }
+.chip.ok, .badge.ok { background: var(--cobalto); }
+.aviso { background: var(--cobaltoEscuro); }
+.modal, .dlgFundo { background: rgba(31, 47, 168, .28); }
+.esqCard:hover, .ensaioCard:hover { background: var(--azulMedio); }
+
+/* Celular */
+@media (max-width: 760px) {
+  #topoCelular { background: var(--branco); color: var(--preto); border-bottom: 1px solid var(--azulMedio); }
+  .topoArco { color: var(--preto); }
+  .topoArco .arcoMiolo { fill: var(--azul); }
+  #barraInferior { border-top: 1px solid var(--azulMedio); }
+  .folhaLista button.ativo { background: var(--cobalto); color: var(--branco); }
+}
