@@ -76,18 +76,25 @@ function roteiro() {
   if (!grade.length) return shell('Roteiro do dia', 'Ordem do espetáculo para a coxia', '<div class="empty">Monte a Grade primeiro.</div>');
   const nomesPers = (eid, elId) => personagensDe(eid).filter(p => p.elenco_id === elId).map(p => p.nome).join(', ');
   const fmt = ids => ids.length ? ids.map(nomeElenco).map(esc).join(', ') : '';
+  /* Projeção: esquetes sem duração entram com a média das que já têm */
+  const conhecidas = grade.filter(e => Number(e.duracao_min) > 0);
+  const media = conhecidas.length ? Math.round(conhecidas.reduce((t, e) => t + Number(e.duracao_min), 0) / conhecidas.length) : 0;
+  const durDe = e => Number(e.duracao_min) > 0 ? Number(e.duracao_min) : media;
+  const estimada = e => !(Number(e.duracao_min) > 0);
   let acumulado = 0;
   const blocos = grade.map((e, i) => {
     const agora = elencoIdsDe(e.id), antes = i ? elencoIdsDe(grade[i - 1].id) : [];
     const entram = agora.filter(id => !antes.includes(id)), seguem = agora.filter(id => antes.includes(id)), saem = antes.filter(id => !agora.includes(id));
     const hora = inicio !== null ? fmtHora(inicio + acumulado) : null;
-    acumulado += Number(e.duracao_min) || 0;
+    const ini = acumulado;
+    acumulado += durDe(e);
     const itens = itensDe(e.id);
     const porTipo = TIPOS_ITEM.map(t => [t, itens.filter(x => (TIPOS_ITEM.includes(x.tipo) ? x.tipo : 'Outros') === t)]).filter(([, l]) => l.length);
     return '<div class="card cena">' +
-      '<div class="cenaTopo"><div class="cenaHora">' + (hora || String(i + 1).padStart(2, '0')) + '</div>' +
+      '<div class="cenaTopo"><div class="cenaHora">' + (hora ? (estimada(e) || grade.slice(0, i).some(estimada) ? '~' : '') + hora : String(i + 1).padStart(2, '0')) + '</div>' +
       '<div style="flex:1"><h3>' + String(i + 1).padStart(2, '0') + '. ' + esc(e.titulo) + '</h3>' +
-      '<div class="meta">' + (e.duracao_min ? fmtDur(e.duracao_min) : 'duração a definir') + '</div></div></div>' +
+      '<div class="meta">' + (estimada(e) ? (media ? '~' + fmtDur(media) + ' (estimado, sem duração cadastrada)' : 'duração a definir') : fmtDur(e.duracao_min)) +
+        ' · ' + (ini ? fmtDur(ini) + ' de espetáculo' : 'início') + '</div></div></div>' +
       '<div class="cenaGrid">' +
       '<div><span>Em cena</span>' + (agora.length ? agora.map(id => esc(nomeElenco(id)) + ' <i>(' + esc(nomesPers(e.id, id)) + ')</i>').join('<br>') : 'Elenco a definir') + '</div>' +
       '<div><span>Movimento</span>' +
@@ -100,7 +107,7 @@ function roteiro() {
 
   const elencoIds = [...new Set(grade.flatMap(e => elencoIdsDe(e.id)))].sort((a, b) => nomeElenco(a).localeCompare(nomeElenco(b)));
   let acc2 = 0; const horaDe = {};
-  grade.forEach(e => { horaDe[e.id] = inicio !== null ? fmtHora(inicio + acc2) : null; acc2 += Number(e.duracao_min) || 0; });
+  grade.forEach(e => { horaDe[e.id] = inicio !== null ? fmtHora(inicio + acc2) : null; acc2 += durDe(e); });
   const porAtor = '<div class="section"><h2>Sequência de cada integrante</h2><div class="atores">' + elencoIds.map(id =>
     '<div class="card"><h3 style="margin:0 0 8px">' + esc(nomeElenco(id)) + '</h3>' + grade.map((e, i) => elencoIdsDe(e.id).includes(id)
       ? '<div class="linha"><b style="min-width:52px">' + (horaDe[e.id] || String(i + 1).padStart(2, '0')) + '</b><span style="flex:1">' + esc(e.titulo) +
@@ -108,17 +115,35 @@ function roteiro() {
         (itensDe(e.id).filter(x => x.tipo === 'Figurino').length ? '<div class="meta">Figurino: ' + itensDe(e.id).filter(x => x.tipo === 'Figurino').map(x => esc(x.descricao)).join(', ') + '</div>' : '') +
         '</span></div>' : '').join('') + '</div>').join('') + '</div></div>';
 
-  const total = grade.reduce((t, e) => t + (Number(e.duracao_min) || 0), 0);
+  const total = grade.reduce((t, e) => t + durDe(e), 0);
+  const somaConhecida = conhecidas.reduce((t, e) => t + Number(e.duracao_min), 0);
+  const faltam = grade.length - conhecidas.length;
+  const maior = grade.reduce((m, e) => durDe(e) > durDe(m) ? e : m, grade[0]);
+  const projecao = '<div class="section card projecao">' +
+    '<div class="fichaTopo"><div><div class="eyebrow">Projeção de duração</div>' +
+    '<div class="pctGrande">' + (total ? (faltam ? '~' : '') + fmtDur(total) : '—') + '</div></div>' +
+    '<div class="meta" style="text-align:right">' + grade.length + ' esquete' + (grade.length > 1 ? 's' : '') + ' na grade' +
+      (inicio !== null && total ? '<br>Das ' + fmtHora(inicio) + ' às ' + (faltam ? '~' : '') + fmtHora(inicio + total) : '') + '</div></div>' +
+    (total ? '<div class="linhaTempo">' + grade.map((e, i) => '<div class="trecho' + (estimada(e) ? ' est' : '') + '" style="flex:' + Math.max(durDe(e), 1) + '" title="' + attr(e.titulo) + '">' +
+      '<span>' + String(i + 1).padStart(2, '0') + '</span></div>').join('') + '</div>' : '') +
+    '<div class="projInfo">' +
+    '<div><span>Tempo já cadastrado</span>' + (somaConhecida ? fmtDur(somaConhecida) : '—') + ' <small>(' + conhecidas.length + ' de ' + grade.length + ' esquetes)</small></div>' +
+    '<div><span>Média por esquete</span>' + (media ? fmtDur(media) : '—') + '</div>' +
+    '<div><span>Esquete mais longa</span>' + (total ? esc(maior.titulo) + ' <small>(' + fmtDur(durDe(maior)) + ')</small>' : '—') + '</div></div>' +
+    (faltam ? '<div class="notice" style="margin:14px 0 0">' + (media
+      ? faltam + ' esquete' + (faltam > 1 ? 's estão' : ' está') + ' sem duração. A projeção usa a média (' + fmtDur(media) + ') para ' + (faltam > 1 ? 'elas' : 'ela') + '; os horários marcados com ~ são estimados.'
+      : 'Nenhuma esquete da grade tem duração cadastrada ainda. Preencha na ficha de cada esquete para calcular a projeção.') + '</div>' : '') +
+    '</div>';
   const cabecalho = '<div class="card rotTopo">' +
     '<div><span>Data</span>' + (s ? esc((d => d.charAt(0).toUpperCase() + d.slice(1))(dataDaSessao(s).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }))) : 'A definir') + '</div>' +
     '<div><span>Local</span>' + esc(s && s.local ? s.local : 'A definir') + '</div>' +
     '<div><span>Abertura da casa</span>' + (s && s.abertura ? hora(s.abertura) : '—') + '</div>' +
     '<div><span>Início</span>' + (inicio !== null ? fmtHora(inicio) : '—') + '</div>' +
-    '<div><span>Término previsto</span>' + (inicio !== null && total ? fmtHora(inicio + total) : '—') + '</div></div>';
+    '<div><span>Término previsto</span>' + (inicio !== null && total ? (faltam ? '~' : '') + fmtHora(inicio + total) : '—') + '</div></div>';
 
   shell('Roteiro do dia', 'Ordem do espetáculo para a coxia · gerado a partir da Grade',
     '<div class="noprint" style="display:flex;justify-content:flex-end;margin-bottom:15px"><button class="btn" onclick="window.print()">Imprimir roteiro</button></div>' +
-    cabecalho + '<div class="section">' + blocos + '</div>' + porAtor);
+    cabecalho + projecao + '<div class="section">' + blocos + '</div>' + porAtor);
 }
 
 /* ---------- Créditos da Ficha Técnica ---------- */
@@ -177,6 +202,14 @@ function copiarCreditos() {
   const s = document.createElement('style');
   s.textContent = '.prontidao .pctGrande{font-size:44px;font-weight:900;letter-spacing:-.04em;line-height:1}.prontidao .barraFundo{margin-top:14px;height:10px}' +
     '.card .barraFundo{margin:8px 0 4px}' +
+    '.linhaTempo{display:flex;gap:3px;margin-top:16px;height:30px}' +
+    '.trecho{background:var(--pink);border-radius:6px;display:flex;align-items:center;justify-content:center;min-width:22px;overflow:hidden}' +
+    '.trecho span{font-size:11px;font-weight:800;color:#fff}.trecho.est{background:repeating-linear-gradient(45deg,#e7a1bd,#e7a1bd 6px,#f3c9da 6px,#f3c9da 12px)}.trecho.est span{color:#7f173e}' +
+    '.projInfo{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px;font-weight:700}' +
+    '.projInfo span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:5px}' +
+    '.projInfo small{font-weight:400;color:var(--muted)}.projecao .pctGrande{font-size:40px;font-weight:900;letter-spacing:-.04em;line-height:1}' +
+    '@media(max-width:900px){.projInfo{grid-template-columns:1fr}}' +
+    '@media print{.trecho{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
     '.rotTopo{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;font-weight:700}' +
     '.rotTopo span,.cenaGrid>div>span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:5px}' +
     '.cena{margin-bottom:12px;break-inside:avoid}.cenaTopo{display:flex;gap:16px;align-items:center;margin-bottom:12px}.cenaTopo h3{margin:0 0 3px}' +
