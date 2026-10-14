@@ -268,13 +268,31 @@ async function moverEsquete(id, direcao) {
   const lista = esqSelecionadas(), i = lista.findIndex(x => x.id === id), j = i + direcao;
   if (i < 0 || j < 0 || j >= lista.length) return;
   [lista[i], lista[j]] = [lista[j], lista[i]];
-  for (let k = 0; k < lista.length; k++) {
-    if (lista[k].ordem !== k + 1) {
-      const r = await sbClient.from('esquetes').update({ ordem: k + 1 }).eq('id', lista[k].id);
-      if (r.error) { alert('Não foi possível reorganizar: ' + r.error.message); break; }
-    }
-  }
+  await salvarOrdemGrade(lista.map(x => x.id));
+}
+/* Grava a nova sequência (usada pelas setas e pelo arrastar) */
+async function salvarOrdemGrade(ids) {
+  const atual = esqSelecionadas();
+  const mudancas = ids.map((id, k) => ({ id, ordem: k + 1 })).filter(m => {
+    const e = atual.find(x => String(x.id) === String(m.id)); return e && e.ordem !== m.ordem;
+  });
+  mudancas.forEach(m => { const e = DB.esquetes.find(x => String(x.id) === String(m.id)); if (e) e.ordem = m.ordem; });
+  if (page === 'espetaculo') render();
+  const resultados = await Promise.all(mudancas.map(m => sbClient.from('esquetes').update({ ordem: m.ordem }).eq('id', m.id)));
+  const erro = resultados.find(r => r.error);
+  if (erro) alert('Não foi possível salvar a nova ordem: ' + erro.error.message);
   await load();
+}
+function ativarArrastarGrade() {
+  const box = document.getElementById('gradeLista');
+  if (!box || !eDirecao() || typeof Sortable === 'undefined') return;
+  Sortable.create(box, {
+    handle: '.alca', animation: 160, ghostClass: 'arrastando', chosenClass: 'escolhida',
+    onEnd: ev => {
+      if (ev.oldIndex === ev.newIndex) return;
+      salvarOrdemGrade([...box.querySelectorAll('.gradeLinha')].map(el => el.dataset.id));
+    }
+  });
 }
 
 function conflitosDaGrade(lista) {
@@ -315,7 +333,8 @@ function espetaculo() {
     acumulado += Number(x.duracao_min) || 0;
     const elencoTxt = pers.length ? pers.map(p => '<span class="' + (c && c.pessoas.includes(p.elenco_id) ? 'alerta' : '') + '">' +
       esc(p.elenco_id ? nomeElenco(p.elenco_id) : 'a definir') + ' <i>(' + esc(p.nome) + ')</i></span>').join(', ') : 'Personagens a definir';
-    return '<div class="card gradeLinha">' +
+    return '<div class="card gradeLinha" data-id="' + x.id + '">' +
+      (dir ? '<div class="alca" title="Arraste para mudar a ordem">⠿</div>' : '') +
       '<div class="gradeNum">' + String(i + 1).padStart(2, '0') + '</div>' +
       '<div style="flex:1;min-width:0"><h3><a href="#" onclick="abrirEsquete(\'' + x.id + '\');return false">' + esc(x.titulo) + '</a></h3>' +
       '<div class="meta">' + [hora ? 'Entra às ' + hora : null, x.duracao_min ? fmtDur(x.duracao_min) : 'duração a definir'].filter(Boolean).join(' · ') + '</div>' +
@@ -335,7 +354,10 @@ function espetaculo() {
       ' esquete' + (p.posicoes.length > 1 ? 's' : '') + ' · posições ' + p.posicoes.join(', ') + '</span></div>').join('') +
     (semCena.length ? '<div class="meta" style="margin-top:10px">Ainda sem cena na grade: ' + semCena.map(e => esc(e.nome_artistico || e.nome)).join(', ') + '</div>' : '') + '</div>';
 
-  shell('Grade', 'Ordem do espetáculo, tempo e elenco em cena', stats + avisos + '<div class="section">' + linhas + '</div>' + blocoPart);
+  shell('Grade', 'Ordem do espetáculo, tempo e elenco em cena', stats + avisos +
+    (dir ? '<div class="meta section">Arraste pela alça ⠿ ou use as setas para mudar a ordem.</div>' : '') +
+    '<div class="section" id="gradeLista">' + linhas + '</div>' + blocoPart);
+  ativarArrastarGrade();
 }
 
 (function () {
@@ -353,6 +375,8 @@ function espetaculo() {
     '.grupoItem{margin-top:14px}' +
     '.gradeLinha{display:flex;align-items:center;gap:16px;margin-bottom:10px}.gradeLinha h3{margin:0 0 4px;font-size:16px}.gradeLinha h3 a{color:inherit;text-decoration:none}' +
     '.gradeNum{font-size:24px;font-weight:900;min-width:38px;text-align:center}' +
+    '.alca{cursor:grab;font-size:22px;line-height:1;color:var(--muted);padding:6px 4px;touch-action:none;user-select:none}.alca:active{cursor:grabbing}' +
+    '.gradeLinha.arrastando{opacity:.35}.gradeLinha.escolhida{box-shadow:0 10px 30px #0002}' +
     '.gradeAcoes{display:flex;gap:6px}.alerta{color:#b3261e;font-weight:700}' +
     '@media(max-width:900px){.fichaInfo{grid-template-columns:1fr 1fr}}' +
     '@media(max-width:650px){.gradeLinha{flex-wrap:wrap}.gradeAcoes{width:100%}}';

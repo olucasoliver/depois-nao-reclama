@@ -19,7 +19,7 @@
 </aside>
 <main class="main" id="main"></main>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./ficha.js?v=202610141012"></script><script src="./acesso.js?v=202610141012"></script><script src="./sessoes.js?v=202610141012"></script><script src="./esquetes.js?v=202610141012"></script><script src="./ensaios.js?v=202610141012"></script><script src="./gestao.js?v=202610141012"></script><script src="./final.js?v=202610141012"></script><script src="./aprovacoes.js?v=202610141012"></script><script>const SUPABASE_URL='https://tatcgvmdozofxhxribdn.supabase.co';
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script><script src="./ficha.js?v=202610141020"></script><script src="./acesso.js?v=202610141020"></script><script src="./sessoes.js?v=202610141020"></script><script src="./esquetes.js?v=202610141020"></script><script src="./ensaios.js?v=202610141020"></script><script src="./gestao.js?v=202610141020"></script><script src="./final.js?v=202610141020"></script><script src="./aprovacoes.js?v=202610141020"></script><script>const SUPABASE_URL='https://tatcgvmdozofxhxribdn.supabase.co';
 const SUPABASE_KEY='sb_publishable_Q_OSMySEc1JZaLf5kxGsZA_31mfCKas';
 const sbClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let DB={elenco:[],esquetes:[],ensaios:[],tarefas:[],ficha:[],divulgacao:[],orcamento:[],checklist:[],atribuicoes:[],ensaioEsquetes:[],sessoes:[],personagens:[],itens:[],presencas:[],aprovacoes:[],perfil:null,funcoes:[],perfilFuncoes:[],perfis:[]},page='inicio',filter='Todas',query='',user=null;
