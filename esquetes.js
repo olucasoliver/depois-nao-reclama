@@ -354,8 +354,14 @@ function espetaculo() {
       ' esquete' + (p.posicoes.length > 1 ? 's' : '') + ' · posições ' + p.posicoes.join(', ') + '</span></div>').join('') +
     (semCena.length ? '<div class="meta" style="margin-top:10px">Ainda sem cena na grade: ' + semCena.map(e => esc(e.nome_artistico || e.nome)).join(', ') + '</div>' : '') + '</div>';
 
-  shell('Grade', 'Ordem do espetáculo, tempo e elenco em cena', stats + avisos +
-    (dir ? '<div class="meta section">Arraste pela alça ⠿ ou use as setas para mudar a ordem.</div>' : '') +
+  const ses = typeof proximaSessao === 'function' ? proximaSessao() : null;
+  const cabImpressao = '<div class="soImpressao">Depois Não Reclama · Arcana Produções' +
+    (ses ? ' · ' + esc(dataDaSessao(ses).toLocaleDateString('pt-BR')) + (ses.local ? ' · ' + esc(ses.local) : '') : '') +
+    ' · impresso em ' + new Date().toLocaleDateString('pt-BR') + '</div>';
+  shell('Grade', 'Ordem do espetáculo, tempo e elenco em cena',
+    '<div class="noprint" style="display:flex;justify-content:flex-end;margin-bottom:15px"><button class="btn" onclick="window.print()">Imprimir grade</button></div>' +
+    cabImpressao + stats + avisos +
+    (dir ? '<div class="meta section noprint">Arraste pela alça ⠿ ou use as setas para mudar a ordem.</div>' : '') +
     '<div class="section" id="gradeLista">' + linhas + '</div>' + blocoPart);
   ativarArrastarGrade();
 }
@@ -376,6 +382,10 @@ function espetaculo() {
     '.gradeLinha{display:flex;align-items:center;gap:16px;margin-bottom:10px}.gradeLinha h3{margin:0 0 4px;font-size:16px}.gradeLinha h3 a{color:inherit;text-decoration:none}' +
     '.gradeNum{font-size:24px;font-weight:900;min-width:38px;text-align:center}' +
     '.alca{cursor:grab;font-size:22px;line-height:1;color:var(--muted);padding:6px 4px;touch-action:none;user-select:none}.alca:active{cursor:grabbing}' +
+    '.soImpressao{display:none}' +
+    '@media print{.soImpressao{display:block;font-size:12px;color:#555;margin:-6px 0 14px}.alca,.gradeAcoes,.btn,.filter{display:none!important}' +
+    '.gradeLinha{break-inside:avoid;page-break-inside:avoid;padding:10px 14px;margin-bottom:6px}.grid{gap:8px;grid-template-columns:repeat(4,1fr)!important}.stat{padding:10px 14px}.stat b{font-size:22px}' +
+    '.notice{-webkit-print-color-adjust:exact;print-color-adjust:exact}.gradeLinha .alerta{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
     '.gradeLinha.arrastando{opacity:.35}.gradeLinha.escolhida{box-shadow:0 10px 30px #0002}' +
     '.gradeAcoes{display:flex;gap:6px}.alerta{color:#b3261e;font-weight:700}' +
     '@media(max-width:900px){.fichaInfo{grid-template-columns:1fr 1fr}}' +
