@@ -99,7 +99,7 @@ async function salvarSessao() {
 }
 
 async function excluirSessao() {
-  if (!sessaoEditando || !confirm('Excluir esta sessão?')) return;
+  if (!sessaoEditando || !await confirmar('Excluir esta sessão?')) return;
   const r = await sbClient.from('sessoes').delete().eq('id', sessaoEditando.id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
   fecharSessao(); await load(); go('inicio');

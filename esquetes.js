@@ -58,7 +58,7 @@ function esquetes() {
       (x.selecao === 'Selecionada' ? ' <span class="badge naGrade">Na grade</span>' : '') +
       (x.selecao === 'Em avaliação do diretor' ? '<div class="badge review">Em avaliação da direção</div>' : '') +
       (eDirecao() ? '<div style="margin-top:12px" onclick="event.stopPropagation()"><button class="filter" onclick="alternarSelecao(\'' + x.id + '\')">' +
-        (x.selecao === 'Selecionada' ? '✓ Na grade · retirar' : 'Colocar na grade') + '</button></div>' : '') +
+        (x.selecao === 'Selecionada' ? 'Retirar da grade' : 'Colocar na grade') + '</button></div>' : '') +
       '</div>';
   };
   shell('Banco de Esquetes', DB.esquetes.length + ' opções de repertório · ' + esqSelecionadas().length + ' na grade',
@@ -144,7 +144,7 @@ async function salvarEsquete() {
 
 async function excluirEsquete(id) {
   const row = DB.esquetes.find(x => x.id === id); if (!row) return;
-  if (!confirm('Excluir definitivamente a esquete "' + row.titulo + '"?\n\nPersonagens e necessidades de cena dela também serão apagados.')) return;
+  if (!await confirmar('Excluir definitivamente a esquete "' + row.titulo + '"?\n\nPersonagens e necessidades de cena dela também serão apagados.')) return;
   const r = await sbClient.from('esquetes').delete().eq('id', id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
   if (row.selecao === 'Selecionada') await renumerarGrade(id);
@@ -230,7 +230,7 @@ async function atribuirPersonagem(id, elenco_id) {
 }
 async function removerPersonagem(id) {
   const p = (DB.personagens || []).find(x => x.id === id);
-  if (!confirm('Remover o personagem "' + (p ? p.nome : '') + '"?')) return;
+  if (!await confirmar('Remover o personagem "' + (p ? p.nome : '') + '"?')) return;
   const r = await sbClient.from('personagens').delete().eq('id', id);
   if (r.error) return alert('Não foi possível remover: ' + r.error.message);
   await load();
@@ -251,7 +251,7 @@ async function marcarItem(id, pronto) {
   await load();
 }
 async function removerItem(id) {
-  if (!confirm('Remover este item?')) return;
+  if (!await confirmar('Remover este item?')) return;
   const r = await sbClient.from('esquete_itens').delete().eq('id', id);
   if (r.error) return alert('Não foi possível remover: ' + r.error.message);
   await load();
@@ -316,10 +316,10 @@ function espetaculo() {
   const conflitoEm = new Map(conflitos.map(c => [c.posicao, c]));
   const elencoEmCena = new Set(lista.flatMap(x => elencoIdsDe(x.id)));
 
-  const stats = '<div class="grid naoImprimir">' +
+  const stats = '<div class="grid gradeStats naoImprimir">' +
     '<div class="stat"><b>' + lista.length + '</b><span>Esquetes na grade</span></div>' +
     '<div class="stat"><b>' + (total ? fmtDur(total) : '—') + '</b><span>Tempo de cena' + (semDur ? ' · ' + semDur + ' sem duração' : '') + '</span></div>' +
-    '<div class="stat"><b>' + (inicio !== null && total ? fmtHora(inicio + total) : '—') + '</b><span>' + (inicio !== null ? 'Término previsto · início ' + fmtHora(inicio) : 'Término: cadastre o início da sessão') + '</span></div>' +
+    '<div class="stat"><b>' + (inicio !== null && total ? fmtHora(inicio + total) : '—') + '</b><span>' + (inicio !== null ? 'Término previsto · início ' + fmtHora(inicio) : 'Término previsto') + '</span></div>' +
     '<div class="stat"><b>' + conflitos.length + '</b><span>Entradas seguidas</span></div></div>';
 
   const avisos = conflitos.length ? '<div class="notice section naoImprimir"><b>Atenção às trocas:</b> ' + conflitos.map(c =>

@@ -78,7 +78,7 @@ function producao() {
   };
   const colunas = STATUS_TAREFA.map((st, i) => {
     const lista = DB.tarefas.filter(t => (t.status || 'A fazer') === st && filtrar(t)).sort(ordenar);
-    return '<div class="col"><h3>' + st + ' <span class="meta">(' + lista.length + ')</span></h3>' +
+    return '<div class="col' + (lista.length ? '' : ' vazia') + '"><h3>' + st + ' <span class="meta">(' + lista.length + ')</span></h3>' +
       (lista.map(t => '<div class="item">' +
         '<div style="font-weight:800">' + esc(t.titulo) + '</div>' +
         (t.categoria ? '<div class="meta">' + esc(t.categoria) + '</div>' : '') +
@@ -87,8 +87,8 @@ function producao() {
         (t.precisa_aprovacao ? '<div class="meta">' + (chipAprovacao(t.aprovacao) || '<span class="chip">Precisa de aprovação</span>') + '</div>' : '') +
         (t.observacoes ? '<div class="meta">' + esc(t.observacoes) + '</div>' : '') +
         (gest ? '<div class="itemAcoes">' +
-          (i > 0 ? '<button class="filter" title="Voltar" onclick="moverTarefa(\'' + t.id + '\',\'' + STATUS_TAREFA[i - 1] + '\')">←</button>' : '') +
-          (i < 2 ? '<button class="filter" title="Avançar" onclick="moverTarefa(\'' + t.id + '\',\'' + STATUS_TAREFA[i + 1] + '\')">→</button>' : '') +
+          (i > 0 ? '<button class="filter" onclick="moverTarefa(\'' + t.id + '\',\'' + STATUS_TAREFA[i - 1] + '\')">' + (i === 2 ? 'Reabrir' : 'Voltar') + '</button>' : '') +
+          (i < 2 ? '<button class="filter forte" onclick="moverTarefa(\'' + t.id + '\',\'' + STATUS_TAREFA[i + 1] + '\')">' + (i === 0 ? 'Começar' : 'Concluir') + '</button>' : '') +
           (t.precisa_aprovacao && t.status !== 'Concluído' ? botaoEnviarAprovacao('Tarefa', t) : '') +
           '<button class="filter" onclick="abrirTarefa(\'' + t.id + '\')">Editar</button>' +
           '<button class="filter" onclick="excluirTarefa(\'' + t.id + '\')">Excluir</button></div>' : '') +
@@ -154,7 +154,7 @@ async function moverTarefa(id, status) {
 }
 async function excluirTarefa(id) {
   const row = DB.tarefas.find(x => x.id === id);
-  if (!row || !confirm('Excluir a tarefa "' + row.titulo + '"?')) return;
+  if (!row || !await confirmar('Excluir a tarefa "' + row.titulo + '"?')) return;
   const r = await sbClient.from('tarefas_producao').delete().eq('id', id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
   await load();
@@ -257,7 +257,7 @@ async function salvarOrcamento() {
   fecharOrcamento(); await load();
 }
 async function excluirOrcamento(id) {
-  if (!confirm('Excluir este lançamento do orçamento?')) return;
+  if (!await confirmar('Excluir este lançamento do orçamento?')) return;
   const r = await sbClient.from('orcamento').delete().eq('id', id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
   await load();
@@ -359,7 +359,7 @@ async function aprovarDivulgacao(id) {
   await load();
 }
 async function excluirDivulgacao(id) {
-  if (!confirm('Excluir esta ação de divulgação?')) return;
+  if (!await confirmar('Excluir esta ação de divulgação?')) return;
   const r = await sbClient.from('divulgacao').delete().eq('id', id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
   await load();

@@ -198,7 +198,7 @@ function equipe() {
 
 async function mudarStatus(pid, status) {
   const p = DB.perfis.find(x => x.id === pid);
-  if (status === 'bloqueado' && !confirm('Remover o acesso de ' + (p && p.nome ? p.nome : 'esta pessoa') + '?')) return;
+  if (status === 'bloqueado' && !await confirmar('Remover o acesso de ' + (p && p.nome ? p.nome : 'esta pessoa') + '?')) return;
   const r = await sbClient.from('perfis').update({ status }).eq('id', pid);
   if (r.error) return alert('Não foi possível atualizar: ' + r.error.message);
   if (status === 'aprovado' && !DB.perfilFuncoes.some(x => x.perfil_id === pid)) {
@@ -231,7 +231,7 @@ function senhaProvisoria() {
 async function redefinirSenha(pid) {
   const p = DB.perfis.find(x => x.id === pid);
   const nome = p && p.nome ? p.nome : 'esta pessoa';
-  const senha = prompt('Senha provisória para ' + nome + ' (mínimo de 6 caracteres).\nVocê pode usar a sugerida ou digitar outra:', senhaProvisoria());
+  const senha = await perguntar('Senha provisória para ' + nome + ' (mínimo de 6 caracteres).\nVocê pode usar a sugerida ou digitar outra:', senhaProvisoria(), { campo: 'linha', ok: 'Redefinir senha' });
   if (senha === null) return;
   if (senha.trim().length < 6) return alert('A senha precisa ter pelo menos 6 caracteres.');
   const r = await sbClient.rpc('redefinir_senha', { p_perfil: pid, p_senha: senha.trim() });
