@@ -51,7 +51,7 @@ function esquetes() {
       pers.length ? pers.length + ' personagem' + (pers.length > 1 ? 's' : '') : 'Sem personagens',
       itens.length ? prontos + '/' + itens.length + ' itens de cena prontos' : null].filter(Boolean).join(' · ');
     return '<div class="card sketch esqCard" onclick="abrirEsquete(\'' + x.id + '\')">' +
-      '<h3>' + esc(x.numero) + '. ' + esc(x.titulo) + '</h3>' +
+      '<h3>' + esc(x.titulo) + '</h3>' +
       '<div class="meta">Origem: ' + esc(x.responsavel_origem || 'Não informada') + '</div>' +
       '<div class="meta">' + resumo + '</div>' +
       '<span class="badge">' + esc(x.situacao || 'Sem situação') + '</span>' +
@@ -93,12 +93,11 @@ function modalEsquete() {
   return '<div id="esqModal" class="modal" onclick="if(event.target===this)fecharModalEsquete()"><div class="modalbox">' +
     '<div class="modalhead"><div><div class="eyebrow">Repertório</div><h2 id="esqModalTitulo">Nova esquete</h2></div><button class="close" onclick="fecharModalEsquete()">×</button></div>' +
     '<div class="formgrid">' +
-    '<div class="field"><label>Número</label><input id="qNumero" type="number" min="1"></div>' +
-    '<div class="field"><label>Duração (minutos)</label><input id="qDuracao" type="number" min="1" placeholder="Ex.: 8"></div>' +
     '<div class="field full"><label>Título</label><input id="qTitulo" placeholder="Nome da esquete"></div>' +
+    '<div class="field"><label>Duração (minutos)</label><input id="qDuracao" type="number" min="1" placeholder="Ex.: 8"></div>' +
     '<div class="field"><label>Situação</label><select id="qSituacao">' + opcoesSituacao() + '</select></div>' +
     '<div class="field"><label>Origem / autoria</label><input id="qOrigem" placeholder="Quem trouxe ou escreveu"></div>' +
-    '<div class="field full"><label>Avaliação</label><select id="qSelecao"><option>Não selecionada</option><option>Em avaliação do diretor</option><option>Selecionada</option></select></div>' +
+    '<div class="field"><label>Avaliação</label><select id="qSelecao"><option>Não selecionada</option><option>Em avaliação do diretor</option><option>Selecionada</option></select></div>' +
     '<div class="field full"><label>Texto da esquete</label><div id="qArquivoAtual"></div>' +
     '<label class="arquivoEscolher"><input id="qArquivo" type="file" accept=".pdf,.doc,.docx,.odt" onchange="arquivoEscolhido(this)"><span id="qArquivoRotulo">Anexar PDF ou Word</span></label>' +
     '<div class="meta">PDF ou Word, até 20 MB. Toda a equipe consegue abrir.</div></div>' +
@@ -114,9 +113,8 @@ function abrirModalEsquete(id) {
   const r = esqueteEditando;
   document.getElementById('esqModal').classList.add('show');
   document.getElementById('esqModalTitulo').textContent = r ? 'Editar esquete' : 'Nova esquete';
-  const proximo = DB.esquetes.reduce((m, x) => Math.max(m, Number(x.numero) || 0), 0) + 1;
   const v = (idc, val) => { document.getElementById(idc).value = val == null ? '' : val; };
-  v('qNumero', r ? r.numero : proximo); v('qDuracao', r ? r.duracao_min : ''); v('qTitulo', r ? r.titulo : '');
+  v('qDuracao', r ? r.duracao_min : ''); v('qTitulo', r ? r.titulo : '');
   v('qSituacao', r && r.situacao ? r.situacao : 'Inédita'); v('qOrigem', r ? r.responsavel_origem : '');
   v('qSelecao', r && r.selecao ? r.selecao : 'Não selecionada'); v('qTexto', r ? r.texto_url : '');
   v('qSinopse', r ? r.sinopse : ''); v('qNotas', r ? r.notas_direcao : '');
@@ -217,11 +215,13 @@ async function salvarEsquete() {
   if (texto && !/^https?:\/\//i.test(texto)) texto = 'https://' + texto;
   const selecao = g('qSelecao');
   const payload = {
-    numero: parseInt(g('qNumero'), 10) || null, titulo, duracao_min: parseInt(g('qDuracao'), 10) || null,
+    titulo, duracao_min: parseInt(g('qDuracao'), 10) || null,
     situacao: g('qSituacao'), responsavel_origem: g('qOrigem').trim(), selecao,
     texto_url: texto || null, sinopse: g('qSinopse').trim(), notas_direcao: g('qNotas').trim()
   };
   const antes = esqueteEditando;
+  // O número não aparece mais, mas continua guardando a ordem de cadastro no banco
+  if (!antes) payload.numero = DB.esquetes.reduce((m, x) => Math.max(m, Number(x.numero) || 0), 0) + 1;
   if (selecao === 'Selecionada' && (!antes || antes.selecao !== 'Selecionada')) payload.ordem = esqSelecionadas().length + 1;
   if (selecao !== 'Selecionada') payload.ordem = null;
   const r = antes
@@ -318,7 +318,7 @@ function esqueteDetalhe() {
     '<button class="filter" onclick="alternarSelecao(\'' + x.id + '\')">' + (x.selecao === 'Selecionada' ? 'Retirar da grade' : 'Colocar na grade') + '</button>' +
     '<button class="filter" onclick="excluirEsquete(\'' + x.id + '\')">Excluir esquete</button></div>' : '';
 
-  shell(esc(x.numero) + '. ' + esc(x.titulo), '<a href="#" class="voltar" onclick="go(\'esquetes\');return false">← Banco de Esquetes</a>',
+  shell(esc(x.titulo), '<a href="#" class="voltar" onclick="go(\'esquetes\');return false">← Banco de Esquetes</a>',
     info + personagens + necessidades + acoes + modalEsquete());
 }
 
