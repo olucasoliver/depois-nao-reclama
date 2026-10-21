@@ -16,7 +16,7 @@ function sessaoDoDia() {
 
 /* ---------- Checklist Final ---------- */
 function checklist() {
-  const gest = eGestao();
+  const gest = podeArea('checklist'), cena = podeArea('cena');
   const grade = esqSelecionadas();
   const itensGrade = grade.flatMap(e => itensDe(e.id));
   const gerais = (DB.checklist || []).slice().sort((a, b) =>
@@ -38,7 +38,7 @@ function checklist() {
       '<a href="#" class="tituloLink" onclick="abrirEsquete(\'' + e.id + '\');return false">' + esc(e.titulo) + '</a></h3>' +
       '<span class="meta">' + (itens.length ? prontos + ' de ' + itens.length + ' prontos' : 'Sem itens cadastrados') + '</span></div>' +
       (itens.length ? barraProgresso(prontos, itens.length) + itens.slice().sort((a, b) => Number(a.pronto) - Number(b.pronto) || (a.tipo || '').localeCompare(b.tipo || '')).map(x =>
-        '<div class="linha"><input type="checkbox" ' + (x.pronto ? 'checked' : '') + (gest ? '' : ' disabled') + ' onchange="marcarItem(\'' + x.id + '\',this.checked)">' +
+        '<div class="linha"><input type="checkbox" ' + (x.pronto ? 'checked' : '') + (cena ? '' : ' disabled') + ' onchange="marcarItem(\'' + x.id + '\',this.checked)">' +
         '<span class="chip">' + esc(x.tipo || 'Outros') + '</span><span style="flex:1;' + (x.pronto ? 'text-decoration:line-through;opacity:.6' : '') + '">' + esc(x.descricao) + '</span>' +
         (x.responsavel ? '<span class="meta">' + esc(x.responsavel) + '</span>' : '') + '</div>').join('')
         : '<div class="meta">Cadastre figurino, adereços e técnica na ficha da esquete.</div>') + '</div>';

@@ -14,18 +14,32 @@ function funcoesDe(pid) {
 function eDirecao() { return acessoLiberado && temFuncao('Direção'); }
 function eGestao() { return acessoLiberado && (temFuncao('Direção') || temFuncao('Produção')); }
 
+/* Funções de área: liberam o trabalho de uma parte da plataforma (igual ao 012 no banco) */
+const AREAS_FUNCOES = {
+  orcamento: ['Financeiro'],
+  divulgacao: ['Divulgação', 'Social Media', 'Fotografia', 'Vídeo'],
+  cena: ['Figurino', 'Adereços', 'Direção de arte', 'Técnico'],
+  checklist: ['Figurino', 'Adereços', 'Direção de arte', 'Técnico', 'Assistente de produção'],
+  tarefas: ['Assistente de produção']
+};
+function podeArea(area) { return eGestao() || (acessoLiberado && (AREAS_FUNCOES[area] || []).some(f => temFuncao(f))); }
+function temAlgumaArea() { return Object.keys(AREAS_FUNCOES).some(podeArea); }
+
 /* Ações que só aparecem para quem pode usá-las */
 const ACOES_GESTAO = ['abrirModalElenco', 'alternarAtivoElenco', 'abrirModalEnsaio', 'excluirEnsaio',
-  'abrirTarefa', 'excluirTarefa', 'abrirDivulgacao', 'excluirDivulgacao', 'abrirOrcamento',
-  'excluirOrcamento', 'abrirChecklist', 'excluirChecklist', 'abrirFicha', 'editarFicha', 'excluirFicha',
-  'abrirSessao'];
+  'abrirFicha', 'editarFicha', 'excluirFicha', 'abrirSessao'];
+const ACOES_AREA = {
+  tarefas: ['abrirTarefa', 'excluirTarefa'], divulgacao: ['abrirDivulgacao', 'excluirDivulgacao'],
+  orcamento: ['abrirOrcamento', 'excluirOrcamento'], checklist: ['abrirChecklist', 'excluirChecklist']
+};
 const ACOES_DIRECAO = ['toggleSelect', 'editarEsquete', 'excluirEsquete', 'moverEsquete',
   'abrirElencoEsquete', 'retirarEsquete'];
 
 (function () {
   const sel = (classe, nomes) => nomes.map(n => 'body:not(.' + classe + ') [onclick^="' + n + '("]').join(',');
-  const css = sel('pode-gestao', ACOES_GESTAO) + ',' + sel('pode-direcao', ACOES_DIRECAO) + '{display:none!important}' +
-    'body:not(.pode-gestao) [onchange^="alternarChecklist("]{pointer-events:none;opacity:.45}' +
+  const css = sel('pode-gestao', ACOES_GESTAO) + ',' + sel('pode-direcao', ACOES_DIRECAO) + ',' +
+    Object.entries(ACOES_AREA).map(([a, l]) => sel('pode-' + a, l)).join(',') + '{display:none!important}' +
+    'body:not(.pode-checklist) [onchange^="alternarChecklist("]{pointer-events:none;opacity:.45}' +
     'body:not(.com-acesso) #nav{display:none}' +
     '.acesso{max-width:440px}.acesso .field{margin:18px 0 14px}.acesso .btn{width:100%}' +
     '.usuario{margin-top:28px;padding-top:18px;border-top:1px solid #ffffff1a;font-size:13px;color:#d9d2d6}' +
@@ -46,6 +60,7 @@ function aplicarPermissoes() {
   document.body.classList.toggle('com-acesso', acessoLiberado);
   document.body.classList.toggle('pode-gestao', eGestao());
   document.body.classList.toggle('pode-direcao', eDirecao());
+  Object.keys(AREAS_FUNCOES).forEach(a => document.body.classList.toggle('pode-' + a, podeArea(a)));
 }
 
 function blocoUsuario() {
@@ -190,7 +205,13 @@ function equipe() {
   const secao = (titulo, lista, vazio) => '<div class="section"><h2>' + titulo + ' (' + lista.length + ')</h2>' +
     (lista.length ? lista.map(cartao).join('') : '<div class="empty">' + vazio + '</div>') + '</div>';
   shell('Equipe e acessos', 'Quem usa a plataforma e o que cada pessoa pode fazer',
-    '<div class="notice"><b>Direção</b> faz tudo, inclusive repertório e aprovações. <b>Produção</b> cuida de ensaios, tarefas, divulgação, orçamento, checklist, ficha técnica, elenco e sessões. <b>Elenco</b> consulta. Marque quantas funções a pessoa tiver.</div>' +
+    '<div class="notice"><b>Direção</b> faz tudo, inclusive repertório, personagens, aprovações e acessos. ' +
+    '<b>Produção</b> cuida de ensaios, demandas, divulgação, orçamento, checklist, ficha técnica, elenco e sessões. ' +
+    '<b>Elenco</b> vê a plataforma, anexa textos das esquetes e responde às convocações.<br>' +
+    '<b>Financeiro</b>: orçamento. <b>Divulgação, Social Media, Fotografia, Vídeo</b>: divulgação. ' +
+    '<b>Figurino, Adereços, Direção de arte, Técnico</b>: necessidades de cena e checklist. ' +
+    '<b>Assistente de produção</b>: demandas e checklist. <b>Convidado</b>: só consulta. ' +
+    'Aprovações continuam com a Direção. Marque quantas funções a pessoa tiver; as permissões se somam.</div>' +
     secao('Aguardando aprovação', grupo('pendente'), 'Nenhum pedido novo.') +
     secao('Equipe', grupo('aprovado'), 'Ninguém aprovado ainda.') +
     (grupo('bloqueado').length ? secao('Sem acesso', grupo('bloqueado'), '') : ''));

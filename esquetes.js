@@ -265,7 +265,7 @@ async function excluirEsquete(id) {
 function esqueteDetalhe() {
   const x = DB.esquetes.find(e => e.id === esqueteAtual);
   if (!x) { page = 'esquetes'; return esquetes(); }
-  const dir = eDirecao(), gest = eGestao();
+  const dir = eDirecao(), gest = podeArea('cena');
   const pers = personagensDe(x.id), itens = itensDe(x.id);
   const grade = esqSelecionadas(), pos = grade.findIndex(e => e.id === x.id);
 

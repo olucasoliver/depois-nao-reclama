@@ -124,7 +124,7 @@ function minhaTarefa(t) {
   return meus.some(n => n === resp) || meus.some(n => resp.includes(n.split(' ')[0]));
 }
 function producao() {
-  const gest = eGestao();
+  const gest = podeArea('tarefas');
   const filtrar = t => filtroTarefas === 'Todas' || (filtroTarefas === 'Minhas' && minhaTarefa(t)) ||
     (filtroTarefas === 'Atrasadas' && t.status !== 'Concluído' && t.prazo && diasAte(t.prazo) < 0);
   const ordenar = (a, b) => (a.prazo || '9999').localeCompare(b.prazo || '9999');
@@ -207,7 +207,7 @@ function abrirDetalheTarefa(id) {
   const t = DB.tarefas.find(x => x.id === id);
   const m = document.getElementById('tarefaDetalhe');
   if (!t || !m) return;
-  const gest = eGestao(), i = Math.max(0, STATUS_TAREFA.indexOf(t.status || 'A fazer'));
+  const gest = podeArea('tarefas'), i = Math.max(0, STATUS_TAREFA.indexOf(t.status || 'A fazer'));
   const linha = (rot, val) => val ? '<div class="detLinha"><span>' + rot + '</span><b>' + val + '</b></div>' : '';
   m.innerHTML = '<div class="modalbox detalheTarefa" role="dialog" aria-modal="true" aria-labelledby="detTitulo">' +
     '<div class="modalhead"><div><div class="eyebrow">' + esc(t.status || 'A fazer') + '</div><h2 id="detTitulo">' + esc(t.titulo) + '</h2></div>' +
@@ -408,7 +408,7 @@ const STATUS_DIV = ['Planejado', 'Em produção', 'Aguardando aprovação', 'Apr
 const CANAIS = ['Instagram', 'TikTok', 'Facebook', 'Site', 'WhatsApp', 'Imprensa', 'Outro'];
 
 function divulgacao() {
-  const gest = eGestao(), dir = eDirecao();
+  const gest = podeArea('divulgacao'), dir = eDirecao();
   const todos = (DB.divulgacao || []).slice().sort((a, b) => (a.data_publicacao || '9999').localeCompare(b.data_publicacao || '9999'));
   const faseDe = x => FASES.includes(x.fase) ? x.fase : 'Sem fase';
   const grupos = FASES.concat(['Sem fase']).map(f => [f, todos.filter(x => faseDe(x) === f)]).filter(([, l]) => l.length);

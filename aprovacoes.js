@@ -21,7 +21,7 @@ function chipAprovacao(sit) {
 }
 /* Botão para a Produção enviar um item */
 function botaoEnviarAprovacao(tipo, item) {
-  if (!eGestao() || eDirecao()) return '';
+  if (eDirecao() || !podeArea({ 'Orçamento': 'orcamento', 'Divulgação': 'divulgacao', 'Tarefa': 'tarefas' }[tipo])) return '';
   if (item.aprovacao === 'pendente' || item.aprovacao === 'aprovado') return '';
   return '<button class="filter destaque" onclick="event.stopPropagation();enviarParaAprovacao(\'' + tipo + '\',\'' + item.id + '\')">' +
     (item.aprovacao === 'ajustes' || item.aprovacao === 'recusado' ? 'Reenviar para aprovação' : 'Enviar para aprovação') + '</button>';
