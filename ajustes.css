@@ -187,3 +187,4 @@ h1.title { margin: 5px 0; line-height: 1.05; }
 .textoEsquete .meta { margin: 0 4px; }
 .field label.arquivoEscolher { text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
 .textoEsquete a.filter { color: var(--ink); }
+.responsavelOutro { margin-top: 6px; }

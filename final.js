@@ -61,11 +61,11 @@ function checklist() {
     '<div class="formgrid">' +
     '<div class="field full"><label>Item a conferir</label><input id="cItem" placeholder="Ex.: Termo de uso do teatro assinado"></div>' +
     '<div class="field"><label>Categoria</label><select id="cCategoria">' + CATEGORIAS_CHECK.map(c => '<option>' + c + '</option>').join('') + '</select></div>' +
-    '<div class="field"><label>Responsável</label><input id="cResponsavel" list="listaEquipeCheck" placeholder="Nome"></div>' +
+    '<div class="field"><label>Responsável</label>' + campoResponsavel('cResponsavel') + '</div>' +
     '<div class="field"><label>Conferir até</label><input id="cPrazo" type="date"></div>' +
     '<div class="field"><label>Situação</label><select id="cConcluido"><option value="false">Pendente</option><option value="true">Confirmado</option></select></div>' +
     '</div><div class="modalactions"><button class="filter" onclick="fecharChecklist()">Cancelar</button><button class="btn" onclick="salvarChecklist()">Salvar conferência</button></div>' +
-    datalist('listaEquipeCheck', nomesDaEquipe()) + '</div></div>';
+    '</div></div>';
 
   shell('Checklist Final', 'Tudo o que precisa estar pronto antes de abrir a cortina', topo + porEsquete + blocoGerais + modal);
 }

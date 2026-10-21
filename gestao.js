@@ -10,10 +10,50 @@ function diasAte(iso) {
 }
 function dataCurta(iso) { return iso ? new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''; }
 function moeda(v) { const n = Number(v) || 0; return (n < 0 ? '- ' : '') + 'R$ ' + Math.abs(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-function nomesDaEquipe() {
-  const nomes = (DB.perfis || []).filter(p => p.status === 'aprovado').map(p => p.nome)
-    .concat(DB.elenco.map(e => e.nome_artistico || e.nome)).filter(Boolean);
-  return [...new Set(nomes)].sort((a, b) => a.localeCompare(b));
+/* Pessoas que podem ser responsáveis: o elenco com o nome cadastrado no Elenco
+   e as contas da equipe que não estão ligadas a ninguém do elenco (sem repetir a mesma pessoa) */
+function pessoasDaEquipe() {
+  const ordenar = l => [...new Set(l.map(n => String(n || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const ligados = new Set(DB.elenco.map(e => e.perfil_id).filter(Boolean));
+  const elenco = ordenar(DB.elenco.map(e => e.nome));
+  const doElenco = new Set(elenco.map(n => n.toLowerCase()));
+  const equipe = ordenar((DB.perfis || []).filter(p => p.status === 'aprovado' && !ligados.has(p.id)).map(p => p.nome))
+    .filter(n => !doElenco.has(n.toLowerCase()));
+  return { elenco, equipe };
+}
+function nomesDaEquipe() { const p = pessoasDaEquipe(); return p.elenco.concat(p.equipe); }
+
+function campoResponsavel(id) {
+  const p = pessoasDaEquipe();
+  const grupo = (rot, l) => l.length ? '<optgroup label="' + rot + '">' + l.map(n => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join('') + '</optgroup>' : '';
+  return '<select id="' + id + '" onchange="responsavelMudou(\'' + id + '\')"><option value="">Sem responsável</option>' +
+    grupo('Elenco', p.elenco) + grupo('Equipe', p.equipe) +
+    '<option value="__outro">Outra pessoa (fora da equipe)...</option></select>' +
+    '<input id="' + id + 'Outro" class="responsavelOutro" placeholder="Nome da pessoa" hidden>';
+}
+function responsavelMudou(id) {
+  const outro = document.getElementById(id + 'Outro'), sel = document.getElementById(id);
+  outro.hidden = sel.value !== '__outro';
+  if (!outro.hidden) outro.focus();
+}
+function definirResponsavel(id, valor) {
+  const sel = document.getElementById(id), outro = document.getElementById(id + 'Outro');
+  if (!sel) return;
+  sel.querySelectorAll('option[data-antigo]').forEach(o => o.remove());
+  valor = String(valor || '').trim();
+  outro.value = ''; outro.hidden = true;
+  if (!valor) { sel.value = ''; return; }
+  if ([...sel.options].some(o => o.value === valor)) { sel.value = valor; return; }
+  // Nome digitado antes ou de alguém de fora: continua aparecendo até alguém escolher outro
+  const o = document.createElement('option');
+  o.value = valor; o.textContent = valor + ' (fora da lista)'; o.dataset.antigo = '1';
+  sel.options[0].after(o);
+  sel.value = valor;
+}
+function lerResponsavel(id) {
+  const sel = document.getElementById(id);
+  if (!sel) return '';
+  return sel.value === '__outro' ? document.getElementById(id + 'Outro').value.trim() : sel.value;
 }
 function datalist(id, valores) { return '<datalist id="' + id + '">' + valores.map(v => '<option value="' + esc(v) + '">').join('') + '</datalist>'; }
 
@@ -71,8 +111,11 @@ function proximoPrazo(lista) {
 let entregasEditando = [];
 
 function minhaTarefa(t) {
-  const meu = (DB.perfil && DB.perfil.nome || '').trim().toLowerCase();
-  return !!meu && (t.responsavel || '').toLowerCase().includes(meu.split(' ')[0]);
+  const resp = (t.responsavel || '').trim().toLowerCase();
+  if (!resp) return false;
+  const meuEl = user ? DB.elenco.find(e => e.perfil_id === user.id) : null;
+  const meus = [DB.perfil && DB.perfil.nome, meuEl && meuEl.nome, meuEl && meuEl.nome_artistico].map(n => String(n || '').trim().toLowerCase()).filter(Boolean);
+  return meus.some(n => n === resp) || meus.some(n => resp.includes(n.split(' ')[0]));
 }
 function producao() {
   const gest = eGestao();
@@ -128,14 +171,14 @@ function modalTarefa() {
     '<div class="modalhead"><div><div class="eyebrow">Produção</div><h2 id="tarefaTitulo">Nova tarefa</h2></div><button class="close" onclick="fecharTarefa()">×</button></div>' +
     '<div class="formgrid"><div class="field full"><label>Tarefa</label><input id="tTitulo" placeholder="Ex.: Comprar tecido do figurino"></div>' +
     '<div class="field"><label>Categoria</label><input id="tCategoria" list="listaCatTarefa" placeholder="Ex.: Figurino, cenário, divulgação"></div>' +
-    '<div class="field"><label>Responsável</label><input id="tResponsavel" list="listaEquipe" placeholder="Nome"></div>' +
+    '<div class="field"><label>Responsável</label>' + campoResponsavel('tResponsavel') + '</div>' +
     '<div class="field"><label>Status</label><select id="tStatus">' + STATUS_TAREFA.map(s => '<option>' + s + '</option>').join('') + '</select></div>' +
     '<div class="field full"><label>Entregas</label><div id="tEntregas" class="entregasLista"></div>' +
     '<button type="button" class="filter" onclick="adicionarEntrega()">+ Adicionar data de entrega</button></div>' +
     '<div class="field full"><label>Observações</label>' + editorRico('tObs', 'Detalhes da tarefa. Use a barra para negrito, itálico, listas e links.') + '</div>' +
     '<label class="checkLinha full"><input type="checkbox" id="tPrecisa"> Precisa da aprovação da direção antes de ser concluída</label></div>' +
     '<div class="modalactions"><button class="filter" onclick="fecharTarefa()">Cancelar</button><button class="btn" onclick="salvarTarefa()">Salvar tarefa</button></div>' +
-    datalist('listaEquipe', nomesDaEquipe()) + datalist('listaCatTarefa', [...new Set(DB.tarefas.map(t => t.categoria).filter(Boolean))]) +
+    datalist('listaCatTarefa', [...new Set(DB.tarefas.map(t => t.categoria).filter(Boolean))]) +
     '</div></div>';
 }
 function abrirTarefa(id) {
@@ -145,7 +188,7 @@ function abrirTarefa(id) {
   document.getElementById('tarefaTitulo').textContent = r ? 'Editar tarefa' : 'Nova tarefa';
   document.getElementById('tTitulo').value = r ? r.titulo || '' : '';
   document.getElementById('tCategoria').value = r ? r.categoria || '' : '';
-  document.getElementById('tResponsavel').value = r ? r.responsavel || '' : '';
+  definirResponsavel('tResponsavel', r ? r.responsavel : '');
   document.getElementById('tStatus').value = r && r.status ? r.status : 'A fazer';
   entregasEditando = r ? entregasDe(r).map(e => Object.assign({}, e)) : [];
   if (!entregasEditando.length) entregasEditando.push({ data: '', nome: '', feito: false });
@@ -216,7 +259,7 @@ async function salvarTarefa() {
   const titulo = document.getElementById('tTitulo').value.trim();
   if (!titulo) return alert('Informe a tarefa.');
   const payload = {
-    titulo, categoria: document.getElementById('tCategoria').value.trim(), responsavel: document.getElementById('tResponsavel').value.trim(),
+    titulo, categoria: document.getElementById('tCategoria').value.trim(), responsavel: lerResponsavel('tResponsavel'),
     status: document.getElementById('tStatus').value,
     observacoes: lerEditor('tObs'),
     precisa_aprovacao: document.getElementById('tPrecisa').checked
@@ -398,11 +441,11 @@ function modalDivulgacao() {
     '<div class="field"><label>Canal</label><select id="dCanal">' + CANAIS.map(c => '<option>' + c + '</option>').join('') + '</select></div>' +
     '<div class="field"><label>Data de publicação</label><input id="dData" type="date"></div>' +
     '<div class="field"><label>Status</label><select id="dStatus">' + STATUS_DIV.map(s => '<option>' + s + '</option>').join('') + '</select></div>' +
-    '<div class="field"><label>Responsável</label><input id="dResponsavel" list="listaEquipeDiv" placeholder="Nome"></div>' +
+    '<div class="field"><label>Responsável</label>' + campoResponsavel('dResponsavel') + '</div>' +
     '<div class="field"><label>Link da arte</label><input id="dLink" placeholder="Drive, Canva, Instagram..."></div>' +
     '<div class="field full"><label>Briefing e observações</label><textarea id="dObs" placeholder="Formato, texto da legenda, referências..."></textarea></div>' +
     '</div><div class="modalactions"><button class="filter" onclick="fecharDivulgacao()">Cancelar</button><button class="btn" onclick="salvarDivulgacao()">Salvar</button></div>' +
-    datalist('listaEquipeDiv', nomesDaEquipe()) + '</div></div>';
+    '</div></div>';
 }
 function abrirDivulgacao(id) {
   divulgacaoEditando = id ? (DB.divulgacao || []).find(x => x.id === id) : null;
@@ -414,7 +457,7 @@ function abrirDivulgacao(id) {
   document.getElementById('dCanal').value = r && CANAIS.includes(r.canal) ? r.canal : 'Instagram';
   document.getElementById('dData').value = r ? r.data_publicacao || '' : '';
   document.getElementById('dStatus').value = r && STATUS_DIV.includes(r.status) ? r.status : 'Planejado';
-  document.getElementById('dResponsavel').value = r ? r.responsavel || '' : '';
+  definirResponsavel('dResponsavel', r ? r.responsavel : '');
   document.getElementById('dLink').value = r ? r.link || '' : '';
   document.getElementById('dObs').value = r ? r.observacoes || '' : '';
 }
@@ -427,7 +470,7 @@ async function salvarDivulgacao() {
   const payload = {
     titulo, fase: document.getElementById('dFase').value || null, canal: document.getElementById('dCanal').value,
     data_publicacao: document.getElementById('dData').value || null, status: document.getElementById('dStatus').value,
-    responsavel: document.getElementById('dResponsavel').value.trim(), link: link || null,
+    responsavel: lerResponsavel('dResponsavel'), link: link || null,
     observacoes: document.getElementById('dObs').value.trim()
   };
   const r = divulgacaoEditando ? await sbClient.from('divulgacao').update(payload).eq('id', divulgacaoEditando.id).select().single()
