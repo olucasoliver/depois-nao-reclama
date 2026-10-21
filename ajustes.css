@@ -192,3 +192,9 @@ h1.title { margin: 5px 0; line-height: 1.05; }
 .contatoPessoa a:hover { text-decoration: underline; }
 .section h2 .meta { font-weight: 400; }
 .empty a { color: var(--pink); font-weight: 700; }
+.doElenco { display: flex; gap: 12px; align-items: center; padding: 12px; background: #f6f3f5; border-radius: 12px; }
+.doElenco .avatar { width: 52px; height: 52px; margin: 0; flex-shrink: 0; font-size: 14px; }
+.doElenco b { font-size: 14px; }
+/* Campos não estouram a janela quando uma opção é longa */
+.formgrid > .field { min-width: 0; }
+.field select { width: 100%; min-width: 0; text-overflow: ellipsis; }
