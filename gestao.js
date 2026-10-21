@@ -59,6 +59,17 @@ function blocoPendencias() {
 let tarefaEditando = null, filtroTarefas = 'Todas';
 const STATUS_TAREFA = ['A fazer', 'Em andamento', 'Concluído'];
 
+/* Entregas: uma demanda pode ter várias datas (ex.: dois teasers em dias diferentes) */
+function entregasDe(t) {
+  const l = Array.isArray(t.prazos) ? t.prazos.filter(e => e && e.data) : [];
+  return l.length ? l.slice().sort((a, b) => a.data.localeCompare(b.data)) : (t.prazo ? [{ data: t.prazo, nome: '', feito: t.status === 'Concluído' }] : []);
+}
+function proximoPrazo(lista) {
+  const pend = lista.filter(e => !e.feito);
+  return pend.length ? pend[0].data : (lista.length ? lista[lista.length - 1].data : null);
+}
+let entregasEditando = [];
+
 function minhaTarefa(t) {
   const meu = (DB.perfil && DB.perfil.nome || '').trim().toLowerCase();
   return !!meu && (t.responsavel || '').toLowerCase().includes(meu.split(' ')[0]);
@@ -69,12 +80,18 @@ function producao() {
     (filtroTarefas === 'Atrasadas' && t.status !== 'Concluído' && t.prazo && diasAte(t.prazo) < 0);
   const ordenar = (a, b) => (a.prazo || '9999').localeCompare(b.prazo || '9999');
   const prazoTag = t => {
-    if (!t.prazo) return '';
-    const d = diasAte(t.prazo);
-    if (t.status === 'Concluído') return '<div class="meta">Prazo: ' + dataCurta(t.prazo) + '</div>';
-    if (d < 0) return '<div class="meta"><span class="chip nao">Atrasada · ' + dataCurta(t.prazo) + '</span></div>';
-    if (d <= 7) return '<div class="meta"><span class="chip aviso">' + (d === 0 ? 'Vence hoje' : 'Vence em ' + d + ' dia' + (d > 1 ? 's' : '')) + '</span></div>';
-    return '<div class="meta">Prazo: ' + dataCurta(t.prazo) + '</div>';
+    const ents = entregasDe(t);
+    if (!ents.length) return '';
+    const feitas = ents.filter(e => e.feito).length;
+    const varias = ents.length > 1 ? '<div class="meta">' + ents.length + ' entregas · ' + feitas + ' feita' + (feitas === 1 ? '' : 's') + '</div>' : '';
+    const prox = ents.find(e => !e.feito);
+    if (t.status === 'Concluído' || !prox) return varias || '<div class="meta">Prazo: ' + dataCurta(ents[ents.length - 1].data) + '</div>';
+    const rot = (ents.length > 1 ? 'Próxima' : 'Prazo') + (prox.nome ? ' (' + esc(prox.nome) + ')' : '');
+    const d = diasAte(prox.data);
+    const tag = d < 0 ? '<span class="chip nao">' + (ents.length > 1 ? 'Entrega atrasada' : 'Atrasada') + ' · ' + dataCurta(prox.data) + '</span>'
+      : d <= 7 ? '<span class="chip aviso">' + rot + ': ' + (d === 0 ? 'hoje' : 'em ' + d + ' dia' + (d > 1 ? 's' : '')) + '</span>'
+      : rot + ': ' + dataCurta(prox.data);
+    return varias + '<div class="meta">' + tag + '</div>';
   };
   const colunas = STATUS_TAREFA.map((st, i) => {
     const lista = DB.tarefas.filter(t => (t.status || 'A fazer') === st && filtrar(t)).sort(ordenar);
@@ -113,7 +130,8 @@ function modalTarefa() {
     '<div class="field"><label>Categoria</label><input id="tCategoria" list="listaCatTarefa" placeholder="Ex.: Figurino, cenário, divulgação"></div>' +
     '<div class="field"><label>Responsável</label><input id="tResponsavel" list="listaEquipe" placeholder="Nome"></div>' +
     '<div class="field"><label>Status</label><select id="tStatus">' + STATUS_TAREFA.map(s => '<option>' + s + '</option>').join('') + '</select></div>' +
-    '<div class="field"><label>Prazo</label><input id="tPrazo" type="date"></div>' +
+    '<div class="field full"><label>Entregas</label><div id="tEntregas" class="entregasLista"></div>' +
+    '<button type="button" class="filter" onclick="adicionarEntrega()">+ Adicionar data de entrega</button></div>' +
     '<div class="field full"><label>Observações</label>' + editorRico('tObs', 'Detalhes da tarefa. Use a barra para negrito, itálico, listas e links.') + '</div>' +
     '<label class="checkLinha full"><input type="checkbox" id="tPrecisa"> Precisa da aprovação da direção antes de ser concluída</label></div>' +
     '<div class="modalactions"><button class="filter" onclick="fecharTarefa()">Cancelar</button><button class="btn" onclick="salvarTarefa()">Salvar tarefa</button></div>' +
@@ -129,7 +147,9 @@ function abrirTarefa(id) {
   document.getElementById('tCategoria').value = r ? r.categoria || '' : '';
   document.getElementById('tResponsavel').value = r ? r.responsavel || '' : '';
   document.getElementById('tStatus').value = r && r.status ? r.status : 'A fazer';
-  document.getElementById('tPrazo').value = r ? r.prazo || '' : '';
+  entregasEditando = r ? entregasDe(r).map(e => Object.assign({}, e)) : [];
+  if (!entregasEditando.length) entregasEditando.push({ data: '', nome: '', feito: false });
+  desenharEntregas();
   definirEditor('tObs', r ? r.observacoes || '' : '');
   const ck = document.getElementById('tPrecisa');
   ck.checked = !!(r && r.precisa_aprovacao); ck.disabled = !!(r && r.precisa_aprovacao && !eDirecao());
@@ -144,8 +164,15 @@ function abrirDetalheTarefa(id) {
     '<div class="modalhead"><div><div class="eyebrow">' + esc(t.status || 'A fazer') + '</div><h2 id="detTitulo">' + esc(t.titulo) + '</h2></div>' +
     '<button class="close" onclick="fecharDetalheTarefa()" aria-label="Fechar">×</button></div>' +
     '<div class="detInfo">' + linha('Categoria', esc(t.categoria || '')) + linha('Responsável', esc(t.responsavel || '')) +
-    linha('Prazo', t.prazo ? dataCurta(t.prazo) : '') +
+    (entregasDe(t).length === 1 ? linha('Prazo', dataCurta(entregasDe(t)[0].data) + (entregasDe(t)[0].nome ? ' · ' + esc(entregasDe(t)[0].nome) : '')) : '') +
     (t.precisa_aprovacao ? linha('Aprovação', chipAprovacao(t.aprovacao) || '<span class="chip">Precisa de aprovação</span>') : '') + '</div>' +
+    (entregasDe(t).length > 1 ? '<div class="detEntregas"><div class="detLinha"><span>Entregas</span></div>' + entregasDe(t).map((e, k) => {
+      const d = diasAte(e.data);
+      const sit = e.feito ? '<span class="chip">Feita</span>' : d < 0 ? '<span class="chip nao">Atrasada</span>' : d <= 7 ? '<span class="chip aviso">' + (d === 0 ? 'Hoje' : 'Em ' + d + ' dia' + (d > 1 ? 's' : '')) + '</span>' : '';
+      return '<label class="entregaItem' + (e.feito ? ' feita' : '') + '">' +
+        (gest ? '<input type="checkbox"' + (e.feito ? ' checked' : '') + ' onchange="marcarEntrega(\'' + t.id + '\',' + k + ',this.checked)">' : '') +
+        '<b>' + dataCurta(e.data) + '</b><span>' + esc(e.nome || 'Entrega ' + (k + 1)) + '</span>' + sit + '</label>';
+    }).join('') + '</div>' : '') +
     (t.observacoes ? '<div class="rico detTexto">' + textoRico(t.observacoes) + '</div>' : '<div class="empty">Sem observações.</div>') +
     (gest ? '<div class="modalactions detAcoes">' +
       '<button class="filter" onclick="fecharDetalheTarefa();excluirTarefa(\'' + t.id + '\')">Excluir</button><span style="flex:1"></span>' +
@@ -157,6 +184,31 @@ function abrirDetalheTarefa(id) {
   m.classList.add('show');
   setTimeout(() => { const c = m.querySelector('.close'); if (c) c.focus(); }, 30);
 }
+function desenharEntregas() {
+  const box = document.getElementById('tEntregas');
+  if (!box) return;
+  box.innerHTML = entregasEditando.map((e, k) => '<div class="entregaLinha">' +
+    '<input type="date" aria-label="Data da entrega ' + (k + 1) + '" value="' + esc(e.data || '') + '" data-k="' + k + '" data-c="data">' +
+    '<input type="text" aria-label="Nome da entrega ' + (k + 1) + '" placeholder="' + (entregasEditando.length > 1 ? 'Ex.: Teaser ' + (k + 1) : 'O que entregar (opcional)') + '" value="' + esc(e.nome || '') + '" data-k="' + k + '" data-c="nome">' +
+    (entregasEditando.length > 1 ? '<button type="button" class="filter discreto" onclick="removerEntrega(' + k + ')" aria-label="Remover entrega ' + (k + 1) + '">Remover</button>' : '') +
+    '</div>').join('');
+}
+function lerEntregas() {
+  document.querySelectorAll('#tEntregas input').forEach(i => { entregasEditando[+i.dataset.k][i.dataset.c] = i.value; });
+}
+function adicionarEntrega() { lerEntregas(); entregasEditando.push({ data: '', nome: '', feito: false }); desenharEntregas(); const l = document.querySelectorAll('#tEntregas input[type=date]'); if (l.length) l[l.length - 1].focus(); }
+function removerEntrega(k) { lerEntregas(); entregasEditando.splice(k, 1); desenharEntregas(); }
+async function marcarEntrega(id, k, feito) {
+  const t = DB.tarefas.find(x => x.id === id);
+  if (!t) return;
+  const prazos = entregasDe(t).map(e => Object.assign({}, e));
+  prazos[k].feito = feito;
+  const r = await sbClient.from('tarefas_producao').update({ prazos, prazo: proximoPrazo(prazos) }).eq('id', id);
+  if (r.error) return alert(/prazos/.test(r.error.message) ? 'Falta rodar o arquivo supabase/007_varias_entregas.sql no Supabase (SQL Editor).' : 'Não foi possível marcar a entrega: ' + r.error.message);
+  await load();
+  abrirDetalheTarefa(id);
+  if (feito && prazos.every(e => e.feito) && t.status !== 'Concluído') avisar('Todas as entregas desta demanda foram feitas. Se estiver tudo certo, é só concluir.');
+}
 function fecharDetalheTarefa() { const m = document.getElementById('tarefaDetalhe'); if (m) { m.classList.remove('show'); m.innerHTML = ''; } }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharDetalheTarefa(); });
 function fecharTarefa() { const m = document.getElementById('tarefaModal'); if (m) m.classList.remove('show'); tarefaEditando = null; }
@@ -165,13 +217,23 @@ async function salvarTarefa() {
   if (!titulo) return alert('Informe a tarefa.');
   const payload = {
     titulo, categoria: document.getElementById('tCategoria').value.trim(), responsavel: document.getElementById('tResponsavel').value.trim(),
-    status: document.getElementById('tStatus').value, prazo: document.getElementById('tPrazo').value || null,
+    status: document.getElementById('tStatus').value,
     observacoes: lerEditor('tObs'),
     precisa_aprovacao: document.getElementById('tPrecisa').checked
   };
-  const r = tarefaEditando ? await sbClient.from('tarefas_producao').update(payload).eq('id', tarefaEditando.id)
-                           : await sbClient.from('tarefas_producao').insert(payload);
-  if (r.error) return alert('Não foi possível salvar a tarefa: ' + r.error.message);
+  lerEntregas();
+  const prazos = entregasEditando.filter(e => e.data).map(e => ({ data: e.data, nome: (e.nome || '').trim(), feito: !!e.feito }))
+    .sort((a, b) => a.data.localeCompare(b.data));
+  payload.prazos = prazos;
+  payload.prazo = proximoPrazo(prazos);
+  const gravar = p => tarefaEditando ? sbClient.from('tarefas_producao').update(p).eq('id', tarefaEditando.id)
+                                     : sbClient.from('tarefas_producao').insert(p);
+  let r = await gravar(payload);
+  // Enquanto o 007 não foi rodado, uma entrega só ainda pode ser salva no campo antigo
+  if (r.error && /prazos/.test(r.error.message) && prazos.length <= 1) { delete payload.prazos; r = await gravar(payload); }
+  if (r.error) return alert(/prazos/.test(r.error.message)
+    ? 'Para salvar várias datas de entrega, falta rodar o arquivo supabase/007_varias_entregas.sql no Supabase (SQL Editor).'
+    : 'Não foi possível salvar a tarefa: ' + r.error.message);
   fecharTarefa(); await load();
 }
 async function moverTarefa(id, status) {
