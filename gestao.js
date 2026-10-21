@@ -20,17 +20,20 @@ function pessoasDaEquipe() {
   const semRepetir = l => l.filter(n => { const k = n.toLowerCase(); if (usados.has(k)) return false; usados.add(k); return true; });
   const elenco = semRepetir(ordenar(DB.elenco.map(e => e.nome)));
   const grupos = {};
-  ['Produção', 'Técnica', 'Staff'].forEach(g => { grupos[g] = semRepetir(ordenar(tec.filter(p => (p.grupo || 'Produção') === g).map(p => p.nome))); });
-  const equipe = semRepetir(ordenar((DB.perfis || []).filter(p => p.status === 'aprovado' && !ligados.has(p.id)).map(p => p.nome)));
-  return { elenco, grupos, equipe };
+  ['Técnica', 'Staff'].forEach(g => { grupos[g] = semRepetir(ordenar(tec.filter(p => (p.grupo === 'Técnica' ? 'Técnica' : 'Staff') === g).map(p => p.nome))); });
+  const comFuncao = (p, nomes) => DB.perfilFuncoes.some(x => x.perfil_id === p.id && nomes.includes((DB.funcoes.find(f => f.id === x.funcao_id) || {}).nome));
+  const contas = (DB.perfis || []).filter(p => p.status === 'aprovado' && !ligados.has(p.id));
+  const producao = semRepetir(ordenar(contas.filter(p => comFuncao(p, ['Produção', 'Direção'])).map(p => p.nome)));
+  const equipe = semRepetir(ordenar(contas.map(p => p.nome)));
+  return { elenco, producao, grupos, equipe };
 }
-function nomesDaEquipe() { const p = pessoasDaEquipe(); return p.elenco.concat(...Object.values(p.grupos), p.equipe); }
+function nomesDaEquipe() { const p = pessoasDaEquipe(); return p.elenco.concat(p.producao, ...Object.values(p.grupos), p.equipe); }
 
 function campoResponsavel(id) {
   const p = pessoasDaEquipe();
   const grupo = (rot, l) => l.length ? '<optgroup label="' + rot + '">' + l.map(n => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join('') + '</optgroup>' : '';
   return '<select id="' + id + '" onchange="responsavelMudou(\'' + id + '\')"><option value="">Sem responsável</option>' +
-    grupo('Elenco', p.elenco) + Object.entries(p.grupos).map(([g, l]) => grupo(g, l)).join('') + grupo('Outras contas da equipe', p.equipe) +
+    grupo('Elenco', p.elenco) + grupo('Direção e Produção', p.producao) + Object.entries(p.grupos).map(([g, l]) => grupo(g, l)).join('') + grupo('Outras contas da equipe', p.equipe) +
     '<option value="__outro">Outra pessoa (fora da equipe)...</option></select>' +
     '<input id="' + id + 'Outro" class="responsavelOutro" placeholder="Nome da pessoa" hidden>';
 }

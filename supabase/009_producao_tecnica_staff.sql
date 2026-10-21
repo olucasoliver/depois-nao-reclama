@@ -1,10 +1,10 @@
--- 009: aba "Produção/Técnica e Staff" (equipe que não está no elenco)
+-- 009: aba "Técnica e Staff" (equipe técnica e staff do evento, fora do elenco)
 -- Toda a equipe aprovada vê; Direção e Produção cadastram, editam e inativam.
 
 create table if not exists public.equipe_tecnica (
   id uuid primary key default gen_random_uuid(),
   nome text not null,
-  grupo text not null default 'Produção' check (grupo in ('Produção', 'Técnica', 'Staff')),
+  grupo text not null default 'Técnica' check (grupo in ('Produção', 'Técnica', 'Staff')),
   funcao text,
   contato text,
   foto_url text,
@@ -14,6 +14,7 @@ create table if not exists public.equipe_tecnica (
   created_at timestamptz not null default now()
 );
 create unique index if not exists equipe_tecnica_perfil_unico on public.equipe_tecnica (perfil_id) where perfil_id is not null;
+alter table public.equipe_tecnica alter column grupo set default 'Técnica';
 
 alter table public.equipe_tecnica enable row level security;
 drop policy if exists "equipe le" on public.equipe_tecnica;

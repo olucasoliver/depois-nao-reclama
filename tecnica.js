@@ -1,7 +1,10 @@
-/* Aba "Produção/Técnica e Staff": pessoas da equipe que não estão no elenco */
+/* Aba "Técnica e Staff": equipe técnica e quem cuida da organização e apoio do evento.
+   A produção do espetáculo continua nas contas com a função Produção (Equipe e acessos). */
 
-const GRUPOS_TECNICA = ['Produção', 'Técnica', 'Staff'];
-const EXEMPLOS_FUNCAO = { 'Produção': 'Ex.: Produção executiva, assistente de produção', 'Técnica': 'Ex.: Iluminação, sonoplastia, operação de vídeo', 'Staff': 'Ex.: Bilheteria, recepção, contrarregragem' };
+const GRUPOS_TECNICA = ['Técnica', 'Staff'];
+const DESCRICAO_GRUPO = { 'Técnica': 'Luz, som, vídeo e operação do espetáculo', 'Staff': 'Organização e apoio do evento' };
+const EXEMPLOS_FUNCAO = { 'Técnica': 'Ex.: Iluminação, sonoplastia, operação de vídeo', 'Staff': 'Ex.: Bilheteria, recepção, contrarregragem, apoio', 'Produção': '' };
+function grupoTecnica(p) { return GRUPOS_TECNICA.includes(p.grupo) ? p.grupo : 'Staff'; }
 let tecnicaEditando = null;
 
 function iniciais(nome) { return String(nome || '').split(' ').filter(Boolean).map(x => x[0]).slice(0, 2).join('').toUpperCase(); }
@@ -28,20 +31,20 @@ function producaoTecnica() {
       '<button class="filter" style="margin-left:6px" onclick="inativarTecnica(\'' + n.id + '\')">Inativar</button></div>' : '') +
     '</div>';
   const secoes = GRUPOS_TECNICA.map(g => {
-    const pessoas = lista.filter(p => (p.grupo || 'Produção') === g);
-    return '<div class="section"><h2>' + g + ' <span class="meta">(' + pessoas.length + ')</span></h2>' +
+    const pessoas = lista.filter(p => grupoTecnica(p) === g);
+    return '<div class="section"><h2>' + g + ' <span class="meta">(' + pessoas.length + ')</span></h2><div class="sub" style="margin:-6px 0 12px">' + DESCRICAO_GRUPO[g] + '</div>' +
       (pessoas.length ? '<div class="cast">' + pessoas.map(cartao).join('') + '</div>'
         : '<div class="empty">Ninguém cadastrado em ' + g + ' ainda.' + (gest ? ' <a href="#" onclick="abrirModalTecnica(null,\'' + g + '\');return false">Adicionar</a>' : '') + '</div>') +
       '</div>';
   }).join('');
-  shell('Produção/Técnica e Staff', lista.length + ' pessoa(s) na equipe de produção, técnica e staff',
+  shell('Técnica e Staff', lista.length + ' pessoa(s) na equipe técnica e no staff do evento',
     (gest ? '<div style="display:flex;justify-content:flex-end;margin-bottom:15px"><button class="btn" onclick="abrirModalTecnica()">+ Adicionar pessoa</button></div>' : '') +
     secoes + (gest ? modalTecnica() : ''));
 }
 
 function modalTecnica() {
   return '<div id="tecnicaModal" class="modal" onclick="if(event.target===this)fecharModalTecnica()"><div class="modalbox">' +
-    '<div class="modalhead"><div><div class="eyebrow">Produção/Técnica e Staff</div><h2 id="tecnicaTitulo">Nova pessoa</h2></div><button class="close" onclick="fecharModalTecnica()">×</button></div>' +
+    '<div class="modalhead"><div><div class="eyebrow">Técnica e Staff</div><h2 id="tecnicaTitulo">Nova pessoa</h2></div><button class="close" onclick="fecharModalTecnica()">×</button></div>' +
     '<div class="formgrid">' +
     '<div class="field full"><label>Nome</label><input id="xNome" placeholder="Nome como deve aparecer na plataforma"></div>' +
     '<div class="field"><label>Grupo</label><select id="xGrupo" onchange="document.getElementById(\'xFuncao\').placeholder=EXEMPLOS_FUNCAO[this.value]">' + GRUPOS_TECNICA.map(g => '<option>' + g + '</option>').join('') + '</select></div>' +
@@ -67,7 +70,7 @@ function abrirModalTecnica(id, grupo) {
   document.getElementById('tecnicaModal').classList.add('show');
   document.getElementById('tecnicaTitulo').textContent = r ? 'Editar pessoa' : 'Nova pessoa';
   const v = (i, val) => { document.getElementById(i).value = val || ''; };
-  v('xNome', r && r.nome); v('xGrupo', (r && r.grupo) || grupo || 'Produção'); v('xFuncao', r && r.funcao);
+  v('xNome', r && r.nome); v('xGrupo', r ? grupoTecnica(r) : (grupo || 'Técnica')); v('xFuncao', r && r.funcao);
   v('xContato', r && r.contato); v('xObs', r && r.observacoes);
   document.getElementById('xFuncao').placeholder = EXEMPLOS_FUNCAO[document.getElementById('xGrupo').value];
   document.getElementById('xPerfil').innerHTML = opcoesContasTecnica(r && r.perfil_id);
