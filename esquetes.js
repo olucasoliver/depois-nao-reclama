@@ -44,7 +44,9 @@ function esquetes() {
      (filter === 'Já apresentadas' && (x.situacao || '').includes('Já')) ||
      (filter === 'Em avaliação' && x.selecao === 'Em avaliação do diretor') ||
      (filter === 'Na grade' && x.selecao === 'Selecionada')) &&
-    (x.titulo || '').toLowerCase().includes(q));
+    (x.titulo || '').toLowerCase().includes(q))
+    // Ordem alfabética pelo título (sem diferenciar acentos e maiúsculas; números em ordem natural)
+    .sort((a, b) => (a.titulo || '').localeCompare(b.titulo || '', 'pt-BR', { sensitivity: 'base', numeric: true }));
   const cartao = x => {
     const pers = personagensDe(x.id), itens = itensDe(x.id), prontos = itens.filter(i => i.pronto).length;
     const resumo = [x.duracao_min ? fmtDur(x.duracao_min) : 'Duração a definir',
