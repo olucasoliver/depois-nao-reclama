@@ -371,6 +371,17 @@ function conflitosDaGrade(lista) {
   return out;
 }
 
+/* Atalho para o texto da esquete direto na Grade (para todo o elenco) */
+function botaoTextoGrade(x) {
+  if (x.texto_arquivo) {
+    const pdf = extensao(x.texto_nome || x.texto_arquivo) === 'pdf';
+    return '<div class="gradeTexto naoImprimir">' + (pdf
+      ? '<button class="filter" onclick="abrirTextoEsquete(\'' + x.id + '\')">Abrir texto</button><button class="filter" onclick="abrirTextoEsquete(\'' + x.id + '\',true)">Baixar</button>'
+      : '<button class="filter" onclick="abrirTextoEsquete(\'' + x.id + '\',true)">Baixar texto (Word)</button>') + '</div>';
+  }
+  if (x.texto_url) return '<div class="gradeTexto naoImprimir"><a class="filter" href="' + attr(x.texto_url) + '" target="_blank" rel="noopener">Abrir texto</a></div>';
+  return '';
+}
 function espetaculo() {
   const lista = esqSelecionadas(), dir = eDirecao();
   if (!lista.length) return shell('Grade', 'Repertório e ordem do espetáculo',
@@ -404,7 +415,7 @@ function espetaculo() {
       '<div class="gradeNum">' + String(i + 1).padStart(2, '0') + '</div>' +
       '<div style="flex:1;min-width:0"><h3><a href="#" onclick="abrirEsquete(\'' + x.id + '\');return false">' + esc(x.titulo) + '</a></h3>' +
       '<div class="meta">' + [hora ? 'Entra às ' + hora : null, x.duracao_min ? fmtDur(x.duracao_min) : 'duração a definir'].filter(Boolean).join(' · ') + '</div>' +
-      '<div class="meta">' + elencoTxt + '</div></div>' +
+      '<div class="meta">' + elencoTxt + '</div>' + botaoTextoGrade(x) + '</div>' +
       (dir ? '<div class="gradeAcoes"><button class="filter" onclick="moverEsquete(\'' + x.id + '\',-1)" ' + (i === 0 ? 'disabled' : '') + '>↑</button>' +
         '<button class="filter" onclick="moverEsquete(\'' + x.id + '\',1)" ' + (i === lista.length - 1 ? 'disabled' : '') + '>↓</button>' +
         '<button class="filter" onclick="alternarSelecao(\'' + x.id + '\')">Retirar</button></div>' : '') + '</div>';
