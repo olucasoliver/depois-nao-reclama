@@ -193,15 +193,16 @@ const GUIA_AREAS = [
   ['Assistente de produção', 'Demandas da Produção e Checklist Final'],
   ['Convidado', 'Só consulta']
 ];
-function guiaFuncoes() {
+function guiaFuncoesConteudo() {
   const lista = l => '<dl>' + l.map(([f, o]) => '<dt>' + esc(f) + '</dt><dd>' + esc(o) + '</dd>').join('') + '</dl>';
+  return '<div class="guiaColunas"><div><h3>Acesso</h3><p>Define o que a pessoa pode fazer na plataforma.</p>' + lista(GUIA_ACESSO) + '</div>' +
+    '<div><h3>Áreas</h3><p>Libera o trabalho numa parte específica, além do que a pessoa já vê.</p>' + lista(GUIA_AREAS) + '</div></div>' +
+    '<div class="guiaRodape">Uma pessoa pode ter várias funções, e as permissões se somam. Aprovações continuam sempre com a Direção.</div>';
+}
+function guiaFuncoes() {
   let aberto = true; try { aberto = localStorage.getItem('guiaFuncoes') !== 'fechado'; } catch (e) {}
   return '<details class="guiaFuncoes"' + (aberto ? ' open' : '') + ' ontoggle="try{localStorage.setItem(\'guiaFuncoes\',this.open?\'aberto\':\'fechado\')}catch(e){}">' +
-    '<summary>Como funcionam as funções</summary>' +
-    '<div class="guiaColunas"><div><h3>Acesso</h3><p>Define o que a pessoa pode fazer na plataforma.</p>' + lista(GUIA_ACESSO) + '</div>' +
-    '<div><h3>Áreas</h3><p>Libera o trabalho numa parte específica, além do que a pessoa já vê.</p>' + lista(GUIA_AREAS) + '</div></div>' +
-    '<div class="guiaRodape">Uma pessoa pode ter várias funções, e as permissões se somam. Aprovações continuam sempre com a Direção.</div>' +
-    '</details>';
+    '<summary>Como funcionam as funções</summary>' + guiaFuncoesConteudo() + '</details>';
 }
 function equipe() {
   const pessoas = DB.perfis.slice();
@@ -293,7 +294,7 @@ function minhaConta() {
     '<div class="card acesso section"><h2>Trocar senha</h2>' +
     '<div class="field"><label>Nova senha</label><input id="contaSenha" type="password" autocomplete="new-password" placeholder="Mínimo de 6 caracteres"></div>' +
     '<div class="field"><label>Confirmar nova senha</label><input id="contaSenha2" type="password" autocomplete="new-password"></div>' +
-    '<button class="btn" onclick="trocarMinhaSenha()">Trocar senha</button></div>');
+    '<button class="btn" onclick="trocarMinhaSenha()">Trocar senha</button></div>' + blocoMinhasFuncoes());
 }
 
 async function salvarMeuNome() {
