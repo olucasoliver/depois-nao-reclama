@@ -56,6 +56,7 @@ function esquetes() {
       '<div class="meta">' + resumo + '</div>' +
       '<span class="badge">' + esc(x.situacao || 'Sem situação') + '</span>' +
       (x.selecao === 'Selecionada' ? ' <span class="badge naGrade">Na grade</span>' : '') +
+      (x.texto_arquivo || x.texto_url ? ' <span class="badge">Com texto</span>' : '') +
       (x.selecao === 'Em avaliação do diretor' ? '<div class="badge review">Em avaliação da direção</div>' : '') +
       (eDirecao() ? '<div style="margin-top:12px" onclick="event.stopPropagation()"><button class="filter" onclick="alternarSelecao(\'' + x.id + '\')">' +
         (x.selecao === 'Selecionada' ? 'Retirar da grade' : 'Colocar na grade') + '</button></div>' : '') +
@@ -98,7 +99,10 @@ function modalEsquete() {
     '<div class="field"><label>Situação</label><select id="qSituacao">' + opcoesSituacao() + '</select></div>' +
     '<div class="field"><label>Origem / autoria</label><input id="qOrigem" placeholder="Quem trouxe ou escreveu"></div>' +
     '<div class="field full"><label>Avaliação</label><select id="qSelecao"><option>Não selecionada</option><option>Em avaliação do diretor</option><option>Selecionada</option></select></div>' +
-    '<div class="field full"><label>Link do texto</label><input id="qTexto" placeholder="Link do Google Drive, Docs, PDF..."></div>' +
+    '<div class="field full"><label>Texto da esquete</label><div id="qArquivoAtual"></div>' +
+    '<label class="arquivoEscolher"><input id="qArquivo" type="file" accept=".pdf,.doc,.docx,.odt" onchange="arquivoEscolhido(this)"><span id="qArquivoRotulo">Anexar PDF ou Word</span></label>' +
+    '<div class="meta">PDF ou Word, até 20 MB. Toda a equipe consegue abrir.</div></div>' +
+    '<div class="field full"><label>Ou link do texto</label><input id="qTexto" placeholder="Link do Google Drive, Docs..."></div>' +
     '<div class="field full"><label>Sinopse</label><textarea id="qSinopse" placeholder="Do que se trata a esquete, em poucas linhas"></textarea></div>' +
     '<div class="field full"><label>Notas da direção</label><textarea id="qNotas" placeholder="Intenções, ritmo, marcações, observações"></textarea></div>' +
     '</div><div class="modalactions"><button class="filter" onclick="fecharModalEsquete()">Cancelar</button><button class="btn" onclick="salvarEsquete()">Salvar</button></div>' +
@@ -116,6 +120,48 @@ function abrirModalEsquete(id) {
   v('qSituacao', r && r.situacao ? r.situacao : 'Inédita'); v('qOrigem', r ? r.responsavel_origem : '');
   v('qSelecao', r && r.selecao ? r.selecao : 'Não selecionada'); v('qTexto', r ? r.texto_url : '');
   v('qSinopse', r ? r.sinopse : ''); v('qNotas', r ? r.notas_direcao : '');
+  removerTextoAnexado = false;
+  document.getElementById('qArquivo').value = '';
+  document.getElementById('qArquivoRotulo').textContent = r && r.texto_arquivo ? 'Trocar o arquivo' : 'Anexar PDF ou Word';
+  desenharArquivoAtual();
+}
+let removerTextoAnexado = false;
+const TIPOS_TEXTO = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', odt: 'application/vnd.oasis.opendocument.text' };
+function extensao(nome) { return (String(nome || '').split('.').pop() || '').toLowerCase(); }
+function desenharArquivoAtual() {
+  const box = document.getElementById('qArquivoAtual'), r = esqueteEditando;
+  if (!box) return;
+  box.innerHTML = r && r.texto_arquivo && !removerTextoAnexado
+    ? '<div class="arquivoAtual"><b>' + esc(r.texto_nome || 'Texto anexado') + '</b><button type="button" class="filter discreto" onclick="removerTextoAnexado=true;desenharArquivoAtual();document.getElementById(\'qArquivoRotulo\').textContent=\'Anexar PDF ou Word\'">Remover</button></div>'
+    : (r && r.texto_arquivo ? '<div class="meta">O arquivo atual será removido ao salvar.</div>' : '');
+}
+function arquivoEscolhido(inp) {
+  const f = inp.files && inp.files[0], rot = document.getElementById('qArquivoRotulo');
+  if (!f) { rot.textContent = 'Anexar PDF ou Word'; return; }
+  if (!TIPOS_TEXTO[extensao(f.name)]) { inp.value = ''; rot.textContent = 'Anexar PDF ou Word'; return avisar('Escolha um arquivo PDF ou Word (.pdf, .doc, .docx ou .odt).', 'erro'); }
+  if (f.size > 20 * 1024 * 1024) { inp.value = ''; rot.textContent = 'Anexar PDF ou Word'; return avisar('O arquivo tem mais de 20 MB. Diminua o tamanho ou use um link do Drive.', 'erro'); }
+  rot.textContent = f.name;
+}
+async function enviarTextoEsquete(esq, arquivo) {
+  const ext = extensao(arquivo.name);
+  const limpo = arquivo.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]+/g, '-').slice(-80);
+  const caminho = esq.id + '/' + Date.now() + '-' + limpo;
+  const up = await sbClient.storage.from('esquetes-textos').upload(caminho, arquivo, { contentType: TIPOS_TEXTO[ext], upsert: false });
+  if (up.error) return { erro: /bucket|not found/i.test(up.error.message) ? 'Falta rodar o arquivo supabase/008_textos_das_esquetes.sql no Supabase (SQL Editor).' : up.error.message };
+  const r = await sbClient.from('esquetes').update({ texto_arquivo: caminho, texto_nome: arquivo.name }).eq('id', esq.id);
+  if (r.error) { await sbClient.storage.from('esquetes-textos').remove([caminho]); return { erro: /texto_arquivo|texto_nome/.test(r.error.message) ? 'Falta rodar o arquivo supabase/008_textos_das_esquetes.sql no Supabase (SQL Editor).' : r.error.message }; }
+  if (esq.texto_arquivo && esq.texto_arquivo !== caminho) await sbClient.storage.from('esquetes-textos').remove([esq.texto_arquivo]);
+  return {};
+}
+async function abrirTextoEsquete(id, baixar) {
+  const x = DB.esquetes.find(e => e.id === id);
+  if (!x || !x.texto_arquivo) return;
+  const pdf = extensao(x.texto_nome || x.texto_arquivo) === 'pdf';
+  // Abre a aba antes de esperar o link, para o navegador não bloquear
+  const aba = !baixar && pdf ? window.open('', '_blank') : null;
+  const r = await sbClient.storage.from('esquetes-textos').createSignedUrl(x.texto_arquivo, 3600, baixar || !pdf ? { download: x.texto_nome || true } : undefined);
+  if (r.error || !r.data) { if (aba) aba.close(); return alert('Não foi possível abrir o texto: ' + (r.error ? r.error.message : 'arquivo não encontrado')); }
+  if (aba) aba.location = r.data.signedUrl; else window.location.href = r.data.signedUrl;
 }
 function fecharModalEsquete() { const m = document.getElementById('esqModal'); if (m) m.classList.remove('show'); esqueteEditando = null; }
 async function salvarEsquete() {
@@ -138,6 +184,19 @@ async function salvarEsquete() {
     : await sbClient.from('esquetes').insert(payload).select().single();
   if (r.error) return alert('Não foi possível salvar: ' + r.error.message);
   if (antes && antes.selecao === 'Selecionada' && selecao !== 'Selecionada') await renumerarGrade(antes.id);
+  const arquivo = document.getElementById('qArquivo').files[0];
+  const salvo = Object.assign({}, antes || {}, r.data || {}, { texto_arquivo: antes ? antes.texto_arquivo : null });
+  if (arquivo) {
+    const btn = document.querySelector('#esqModal .modalactions .btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando o texto...'; }
+    const env = await enviarTextoEsquete(salvo, arquivo);
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
+    if (env.erro) { await load(); return alert('A esquete foi salva, mas o texto não foi anexado. ' + env.erro); }
+  } else if (removerTextoAnexado && antes && antes.texto_arquivo) {
+    const caminhoAntigo = antes.texto_arquivo;
+    await sbClient.from('esquetes').update({ texto_arquivo: null, texto_nome: null }).eq('id', antes.id);
+    await sbClient.storage.from('esquetes-textos').remove([caminhoAntigo]);
+  }
   fecharModalEsquete(); await load();
   if (r.data && r.data.id) abrirEsquete(r.data.id);
 }
@@ -147,6 +206,7 @@ async function excluirEsquete(id) {
   if (!await confirmar('Excluir definitivamente a esquete "' + row.titulo + '"?\n\nPersonagens e necessidades de cena dela também serão apagados.')) return;
   const r = await sbClient.from('esquetes').delete().eq('id', id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
+  if (row.texto_arquivo) await sbClient.storage.from('esquetes-textos').remove([row.texto_arquivo]);
   if (row.selecao === 'Selecionada') await renumerarGrade(id);
   esqueteAtual = null; await load(); go('esquetes');
 }
@@ -166,7 +226,13 @@ function esqueteDetalhe() {
     '<div><span>Situação</span>' + esc(x.situacao || 'Sem situação') + '</div>' +
     '<div><span>Origem</span>' + esc(x.responsavel_origem || 'Não informada') + '</div>' +
     '<div><span>Na grade</span>' + (pos >= 0 ? 'Posição ' + (pos + 1) + ' de ' + grade.length : 'Não') + '</div></div>' +
-    (x.texto_url ? '<div style="margin-top:16px"><a class="btn" style="display:inline-block;text-decoration:none" href="' + attr(x.texto_url) + '" target="_blank" rel="noopener">Abrir o texto</a></div>' : '') +
+    (x.texto_arquivo || x.texto_url ? '<div class="textoEsquete">' +
+      (x.texto_arquivo ? (extensao(x.texto_nome || x.texto_arquivo) === 'pdf'
+        ? '<button class="btn" onclick="abrirTextoEsquete(\'' + x.id + '\')">Abrir o texto</button><button class="filter" onclick="abrirTextoEsquete(\'' + x.id + '\',true)">Baixar</button>'
+        : '<button class="btn" onclick="abrirTextoEsquete(\'' + x.id + '\',true)">Baixar o texto (Word)</button>') +
+        '<span class="meta">' + esc(x.texto_nome || '') + '</span>' : '') +
+      (x.texto_url ? '<a class="' + (x.texto_arquivo ? 'filter' : 'btn') + '" style="display:inline-block;text-decoration:none" href="' + attr(x.texto_url) + '" target="_blank" rel="noopener">' + (x.texto_arquivo ? 'Abrir o link' : 'Abrir o texto') + '</a>' : '') +
+      '</div>' : '') +
     (x.sinopse ? '<div class="fichaBloco"><span>Sinopse</span>' + esc(x.sinopse).replace(/\n/g, '<br>') + '</div>' : '') +
     (x.notas_direcao ? '<div class="fichaBloco"><span>Notas da direção</span>' + esc(x.notas_direcao).replace(/\n/g, '<br>') + '</div>' : '') +
     '</div>';

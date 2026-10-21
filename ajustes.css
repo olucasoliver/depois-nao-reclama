@@ -175,3 +175,15 @@ h1.title { margin: 5px 0; line-height: 1.05; }
   .entregaLinha { grid-template-columns: 1fr auto; }
   .entregaLinha input[type=text] { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* Texto da esquete (PDF/Word) */
+.arquivoEscolher { position: relative; display: inline-flex; align-items: center; gap: 8px; border: 1px dashed #cdbcc4; border-radius: 10px; padding: 11px 14px; cursor: pointer; font-size: 14px; background: #faf7f8; max-width: 100%; }
+.arquivoEscolher:hover { border-color: var(--pink2); }
+.arquivoEscolher:focus-within { outline: 2px solid var(--pink2); outline-offset: 1px; }
+.arquivoEscolher input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.arquivoEscolher span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arquivoAtual { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; background: #f6f3f5; border-radius: 10px; font-size: 14px; margin-bottom: 8px; word-break: break-all; }
+.textoEsquete { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.textoEsquete .meta { margin: 0 4px; }
+.field label.arquivoEscolher { text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
+.textoEsquete a.filter { color: var(--ink); }
