@@ -36,6 +36,10 @@ function minutosDoInicio() {
 function abrirEsquete(id) { esqueteAtual = id; go('esquete'); window.scrollTo(0, 0); }
 
 /* ---------- Banco de Esquetes ---------- */
+/* Título para ordenar: sem espaços, aspas ou numeração digitada no começo ("1. ", "“", "- ") */
+function chaveAlfabetica(t) {
+  return String(t || '').trim().replace(/^[\s"'“”‘’«»()\[\]\-–—.,:;!?*#]+/, '').replace(/^\d+\s*[.)\-–—:]\s*/, '').trim();
+}
 function esquetes() {
   const q = query.toLowerCase();
   const arr = DB.esquetes.filter(x =>
@@ -46,7 +50,7 @@ function esquetes() {
      (filter === 'Na grade' && x.selecao === 'Selecionada')) &&
     (x.titulo || '').toLowerCase().includes(q))
     // Ordem alfabética pelo título (sem diferenciar acentos e maiúsculas; números em ordem natural)
-    .sort((a, b) => (a.titulo || '').localeCompare(b.titulo || '', 'pt-BR', { sensitivity: 'base', numeric: true }));
+    .sort((a, b) => chaveAlfabetica(a.titulo).localeCompare(chaveAlfabetica(b.titulo), 'pt-BR', { sensitivity: 'base', numeric: true }));
   const cartao = x => {
     const pers = personagensDe(x.id), itens = itensDe(x.id), prontos = itens.filter(i => i.pronto).length;
     const resumo = [x.duracao_min ? fmtDur(x.duracao_min) : 'Duração a definir',
