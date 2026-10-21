@@ -205,3 +205,15 @@ h1.title { margin: 5px 0; line-height: 1.05; }
 .contatos span { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .contatos a { color: var(--pink); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .contatos a:hover { text-decoration: underline; }
+
+/* Janelas de edição ficam acima das barras do celular; botões Salvar/Cancelar sempre visíveis */
+.modal { z-index: 45; }
+body:has(.modal.show) #barraInferior { display: none; }
+.modalbox .modalactions { position: sticky; bottom: -22px; background: #fff; padding: 12px 0 4px; margin-bottom: -4px; z-index: 2; }
+@media (max-width: 650px) {
+  .modal { padding: 0; align-items: flex-end; }
+  .modalbox { width: 100%; max-height: calc(100dvh - 12px); border-radius: 20px 20px 0 0; padding: 20px 16px 0; }
+  .modalbox .modalactions { bottom: 0; padding: 12px 0 calc(14px + env(safe-area-inset-bottom)); margin: 8px -16px 0; padding-left: 16px; padding-right: 16px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .modalbox .modalactions > button { flex: 1 1 auto; min-height: 46px; }
+  .modalbox .modalactions > span { display: none; }
+}
