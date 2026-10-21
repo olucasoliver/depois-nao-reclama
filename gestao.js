@@ -79,20 +79,22 @@ function producao() {
   const colunas = STATUS_TAREFA.map((st, i) => {
     const lista = DB.tarefas.filter(t => (t.status || 'A fazer') === st && filtrar(t)).sort(ordenar);
     return '<div class="col' + (lista.length ? '' : ' vazia') + '"><h3>' + st + ' <span class="meta">(' + lista.length + ')</span></h3>' +
-      (lista.map(t => '<div class="item">' +
+      (lista.map(t => {
+        const resumo = textoPuro(t.observacoes).replace(/\s+/g, ' ').trim();
+        return '<div class="item tarefaCard" role="button" tabindex="0" onclick="abrirDetalheTarefa(\'' + t.id + '\')" onkeydown="if(event.key===\'Enter\'&&event.target===this)abrirDetalheTarefa(\'' + t.id + '\')">' +
         '<div style="font-weight:800">' + esc(t.titulo) + '</div>' +
         (t.categoria ? '<div class="meta">' + esc(t.categoria) + '</div>' : '') +
         (t.responsavel ? '<div class="meta">Responsável: ' + esc(t.responsavel) + '</div>' : '') +
         prazoTag(t) +
         (t.precisa_aprovacao ? '<div class="meta">' + (chipAprovacao(t.aprovacao) || '<span class="chip">Precisa de aprovação</span>') + '</div>' : '') +
-        (t.observacoes ? '<div class="meta">' + esc(t.observacoes) + '</div>' : '') +
-        (gest ? '<div class="itemAcoes">' +
-          (i > 0 ? '<button class="filter" onclick="moverTarefa(\'' + t.id + '\',\'' + STATUS_TAREFA[i - 1] + '\')">' + (i === 2 ? 'Reabrir' : 'Voltar') + '</button>' : '') +
-          (i < 2 ? '<button class="filter forte" onclick="moverTarefa(\'' + t.id + '\',\'' + STATUS_TAREFA[i + 1] + '\')">' + (i === 0 ? 'Começar' : 'Concluir') + '</button>' : '') +
-          (t.precisa_aprovacao && t.status !== 'Concluído' ? botaoEnviarAprovacao('Tarefa', t) : '') +
-          '<button class="filter" onclick="abrirTarefa(\'' + t.id + '\')">Editar</button>' +
-          '<button class="filter" onclick="excluirTarefa(\'' + t.id + '\')">Excluir</button></div>' : '') +
-        '</div>').join('') || '<div class="empty">Nenhuma</div>') + '</div>';
+        (resumo ? '<div class="meta tarefaResumo">' + esc(resumo) + '</div>' : '') +
+        '<div class="itemAcoes" onclick="event.stopPropagation()">' +
+          (gest ? (i < 2 ? '<button class="filter forte" onclick="moverTarefa(\'' + t.id + '\',\'' + STATUS_TAREFA[i + 1] + '\')">' + (i === 0 ? 'Começar' : 'Concluir') + '</button>' : '') +
+            (i === 2 ? '<button class="filter" onclick="moverTarefa(\'' + t.id + '\',\'' + STATUS_TAREFA[1] + '\')">Reabrir</button>' : '') +
+            (t.precisa_aprovacao && t.status !== 'Concluído' ? botaoEnviarAprovacao('Tarefa', t) : '') : '') +
+          '<button class="filter" onclick="abrirDetalheTarefa(\'' + t.id + '\')">Ver detalhes</button>' +
+        '</div></div>';
+      }).join('') || '<div class="empty">Nenhuma</div>') + '</div>';
   }).join('');
   const atrasadas = DB.tarefas.filter(t => t.status !== 'Concluído' && t.prazo && diasAte(t.prazo) < 0).length;
   shell('Produção', 'Tarefas da montagem, do que falta fazer ao que já está pronto',
@@ -102,7 +104,7 @@ function producao() {
     (gest ? '<button class="btn" onclick="abrirTarefa()">+ Nova tarefa</button>' : '') + '</div>' +
     '<div class="kanban">' + colunas + '</div>' +
     '<div class="section notice">Use a Produção para o que precisa ser <b>feito</b> durante a montagem. O <b>Checklist Final</b> é para conferir, perto da estreia, que cada coisa está pronta.</div>' +
-    modalTarefa());
+    modalTarefa() + '<div id="tarefaDetalhe" class="modal" onclick="if(event.target===this)fecharDetalheTarefa()"></div>');
 }
 function modalTarefa() {
   return '<div id="tarefaModal" class="modal" onclick="if(event.target===this)fecharTarefa()"><div class="modalbox">' +
@@ -112,7 +114,7 @@ function modalTarefa() {
     '<div class="field"><label>Responsável</label><input id="tResponsavel" list="listaEquipe" placeholder="Nome"></div>' +
     '<div class="field"><label>Status</label><select id="tStatus">' + STATUS_TAREFA.map(s => '<option>' + s + '</option>').join('') + '</select></div>' +
     '<div class="field"><label>Prazo</label><input id="tPrazo" type="date"></div>' +
-    '<div class="field full"><label>Observações</label><textarea id="tObs" placeholder="Detalhes da tarefa..."></textarea></div>' +
+    '<div class="field full"><label>Observações</label>' + editorRico('tObs', 'Detalhes da tarefa. Use a barra para negrito, itálico, listas e links.') + '</div>' +
     '<label class="checkLinha full"><input type="checkbox" id="tPrecisa"> Precisa da aprovação da direção antes de ser concluída</label></div>' +
     '<div class="modalactions"><button class="filter" onclick="fecharTarefa()">Cancelar</button><button class="btn" onclick="salvarTarefa()">Salvar tarefa</button></div>' +
     datalist('listaEquipe', nomesDaEquipe()) + datalist('listaCatTarefa', [...new Set(DB.tarefas.map(t => t.categoria).filter(Boolean))]) +
@@ -128,10 +130,35 @@ function abrirTarefa(id) {
   document.getElementById('tResponsavel').value = r ? r.responsavel || '' : '';
   document.getElementById('tStatus').value = r && r.status ? r.status : 'A fazer';
   document.getElementById('tPrazo').value = r ? r.prazo || '' : '';
-  document.getElementById('tObs').value = r ? r.observacoes || '' : '';
+  definirEditor('tObs', r ? r.observacoes || '' : '');
   const ck = document.getElementById('tPrecisa');
   ck.checked = !!(r && r.precisa_aprovacao); ck.disabled = !!(r && r.precisa_aprovacao && !eDirecao());
 }
+function abrirDetalheTarefa(id) {
+  const t = DB.tarefas.find(x => x.id === id);
+  const m = document.getElementById('tarefaDetalhe');
+  if (!t || !m) return;
+  const gest = eGestao(), i = Math.max(0, STATUS_TAREFA.indexOf(t.status || 'A fazer'));
+  const linha = (rot, val) => val ? '<div class="detLinha"><span>' + rot + '</span><b>' + val + '</b></div>' : '';
+  m.innerHTML = '<div class="modalbox detalheTarefa" role="dialog" aria-modal="true" aria-labelledby="detTitulo">' +
+    '<div class="modalhead"><div><div class="eyebrow">' + esc(t.status || 'A fazer') + '</div><h2 id="detTitulo">' + esc(t.titulo) + '</h2></div>' +
+    '<button class="close" onclick="fecharDetalheTarefa()" aria-label="Fechar">×</button></div>' +
+    '<div class="detInfo">' + linha('Categoria', esc(t.categoria || '')) + linha('Responsável', esc(t.responsavel || '')) +
+    linha('Prazo', t.prazo ? dataCurta(t.prazo) : '') +
+    (t.precisa_aprovacao ? linha('Aprovação', chipAprovacao(t.aprovacao) || '<span class="chip">Precisa de aprovação</span>') : '') + '</div>' +
+    (t.observacoes ? '<div class="rico detTexto">' + textoRico(t.observacoes) + '</div>' : '<div class="empty">Sem observações.</div>') +
+    (gest ? '<div class="modalactions detAcoes">' +
+      '<button class="filter" onclick="fecharDetalheTarefa();excluirTarefa(\'' + t.id + '\')">Excluir</button><span style="flex:1"></span>' +
+      (i > 0 ? '<button class="filter" onclick="fecharDetalheTarefa();moverTarefa(\'' + t.id + '\',\'' + STATUS_TAREFA[i - 1] + '\')">' + (i === 2 ? 'Reabrir' : 'Voltar para A fazer') + '</button>' : '') +
+      (t.precisa_aprovacao && t.status !== 'Concluído' ? botaoEnviarAprovacao('Tarefa', t) : '') +
+      '<button class="filter" onclick="fecharDetalheTarefa();abrirTarefa(\'' + t.id + '\')">Editar</button>' +
+      (i < 2 ? '<button class="btn" onclick="fecharDetalheTarefa();moverTarefa(\'' + t.id + '\',\'' + STATUS_TAREFA[i + 1] + '\')">' + (i === 0 ? 'Começar' : 'Concluir') + '</button>' : '') +
+      '</div>' : '') + '</div>';
+  m.classList.add('show');
+  setTimeout(() => { const c = m.querySelector('.close'); if (c) c.focus(); }, 30);
+}
+function fecharDetalheTarefa() { const m = document.getElementById('tarefaDetalhe'); if (m) { m.classList.remove('show'); m.innerHTML = ''; } }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharDetalheTarefa(); });
 function fecharTarefa() { const m = document.getElementById('tarefaModal'); if (m) m.classList.remove('show'); tarefaEditando = null; }
 async function salvarTarefa() {
   const titulo = document.getElementById('tTitulo').value.trim();
@@ -139,7 +166,7 @@ async function salvarTarefa() {
   const payload = {
     titulo, categoria: document.getElementById('tCategoria').value.trim(), responsavel: document.getElementById('tResponsavel').value.trim(),
     status: document.getElementById('tStatus').value, prazo: document.getElementById('tPrazo').value || null,
-    observacoes: document.getElementById('tObs').value.trim(),
+    observacoes: lerEditor('tObs'),
     precisa_aprovacao: document.getElementById('tPrecisa').checked
   };
   const r = tarefaEditando ? await sbClient.from('tarefas_producao').update(payload).eq('id', tarefaEditando.id)

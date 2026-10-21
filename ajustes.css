@@ -125,3 +125,37 @@ h1.title { margin: 5px 0; line-height: 1.05; }
 @media print {
   #topoCelular, #barraInferior, #folhaMais, #avisos, #dialogos, .topoBotoes { display: none !important; }
 }
+
+/* ---------- Produção: cartões compactos, detalhes ao abrir ---------- */
+.tarefaCard { cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
+.tarefaCard:hover { border-color: #d9c6cf; box-shadow: 0 4px 14px #32151d12; }
+.tarefaCard:focus-visible { outline: 2px solid var(--pink2); outline-offset: 2px; }
+.tarefaResumo { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.45; margin-top: 6px; }
+.detalheTarefa { width: min(760px, 100%); }
+.detInfo { display: flex; flex-wrap: wrap; gap: 10px 26px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+.detLinha { display: flex; flex-direction: column; gap: 3px; }
+.detLinha span { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.detLinha b { font-size: 14px; }
+.detTexto { font-size: 15px; line-height: 1.6; }
+.detAcoes { flex-wrap: wrap; align-items: center; }
+
+/* Texto formatado */
+.rico p { margin: 0 0 .7em; }
+.rico ul, .rico ol { margin: .3em 0 .8em; padding-left: 1.4em; }
+.rico li { margin: .2em 0; }
+.rico a { color: var(--pink); text-decoration: underline; text-underline-offset: 2px; word-break: break-word; }
+.rico > :last-child { margin-bottom: 0; }
+
+/* Editor com barra de formatação */
+.editorRico { border: 1px solid var(--line); border-radius: 10px; background: #fff; overflow: hidden; }
+.editorRico:focus-within { outline: 2px solid var(--pink2); outline-offset: 1px; }
+.editorBarra { display: flex; flex-wrap: wrap; gap: 2px; padding: 5px; border-bottom: 1px solid var(--line); background: #faf7f8; }
+.editorBarra button { border: 0; background: none; border-radius: 7px; padding: 6px 10px; font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; min-height: 32px; }
+.editorBarra button:hover { background: #eee8eb; }
+.editorArea { min-height: 160px; max-height: 50vh; overflow-y: auto; padding: 11px 12px; font-size: 14px; line-height: 1.55; outline: none; }
+.editorArea:empty::before { content: attr(data-placeholder); color: #a89ea3; }
+@media (max-width: 650px) {
+  .editorBarra button { min-height: 38px; padding: 8px 11px; }
+  .detAcoes > * { flex: 1 1 auto; }
+  .detAcoes > span { display: none; }
+}

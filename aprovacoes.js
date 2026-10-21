@@ -131,7 +131,7 @@ function enviarParaAprovacao(tipo, id) {
   abrirModalAprovacao({
     tipo, ref: id, reenvio: !!aberto,
     titulo: x.descricao && tipo === 'Orçamento' ? x.descricao : x.titulo,
-    descricao: aberto ? aberto.descricao : (x.observacoes || ''),
+    descricao: aberto ? aberto.descricao : textoPuro(x.observacoes || ''),
     valor: tipo === 'Orçamento' ? x.valor : (aberto ? aberto.valor : ''),
     link: x.link || (aberto ? aberto.link : ''),
     aviso: aberto && aberto.resposta ? '<b>Direção:</b> ' + esc(aberto.resposta) : ''
