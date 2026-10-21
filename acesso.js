@@ -179,6 +179,30 @@ async function sair() {
 }
 
 /* ---------- Equipe e acessos (Direção) ---------- */
+const FUNCOES_ACESSO = ['Direção', 'Produção', 'Elenco'];
+const GUIA_ACESSO = [
+  ['Direção', 'Faz tudo, inclusive repertório, grade, personagens, aprovações e acessos'],
+  ['Produção', 'Ensaios, demandas, divulgação, orçamento, checklist, ficha técnica, elenco e sessões'],
+  ['Elenco', 'Vê a plataforma, anexa textos das esquetes e responde às convocações de ensaio'],
+  ['Nenhuma marcada', 'Só consulta']
+];
+const GUIA_AREAS = [
+  ['Financeiro', 'Orçamento'],
+  ['Divulgação, Social Media, Fotografia, Vídeo', 'Divulgação'],
+  ['Figurino, Adereços, Direção de arte, Técnico', 'Necessidades de cena e Checklist Final'],
+  ['Assistente de produção', 'Demandas da Produção e Checklist Final'],
+  ['Convidado', 'Só consulta']
+];
+function guiaFuncoes() {
+  const lista = l => '<dl>' + l.map(([f, o]) => '<dt>' + esc(f) + '</dt><dd>' + esc(o) + '</dd>').join('') + '</dl>';
+  let aberto = true; try { aberto = localStorage.getItem('guiaFuncoes') !== 'fechado'; } catch (e) {}
+  return '<details class="guiaFuncoes"' + (aberto ? ' open' : '') + ' ontoggle="try{localStorage.setItem(\'guiaFuncoes\',this.open?\'aberto\':\'fechado\')}catch(e){}">' +
+    '<summary>Como funcionam as funções</summary>' +
+    '<div class="guiaColunas"><div><h3>Acesso</h3><p>Define o que a pessoa pode fazer na plataforma.</p>' + lista(GUIA_ACESSO) + '</div>' +
+    '<div><h3>Áreas</h3><p>Libera o trabalho numa parte específica, além do que a pessoa já vê.</p>' + lista(GUIA_AREAS) + '</div></div>' +
+    '<div class="guiaRodape">Uma pessoa pode ter várias funções, e as permissões se somam. Aprovações continuam sempre com a Direção.</div>' +
+    '</details>';
+}
 function equipe() {
   const pessoas = DB.perfis.slice();
   const grupo = st => pessoas.filter(p => (p.status || 'pendente') === st);
@@ -197,21 +221,19 @@ function equipe() {
         : '<button class="filter" onclick="mudarStatus(\'' + p.id + '\',\'aprovado\')">Reativar</button>';
     return '<div class="card" style="margin-bottom:10px"><div class="pessoa"><div><b>' + esc(p.nome || 'Sem nome') + '</b>' +
       '<div class="meta">' + esc(p.email || '') + '</div>' +
-      (st === 'bloqueado' ? '' : '<div class="funcoes">' + funcoes.map(f =>
-        '<label><input type="checkbox" ' + (minhas.has(f.id) ? 'checked' : '') +
-        ' onchange="alternarFuncao(\'' + p.id + '\',\'' + f.id + '\',this.checked,this)"> ' + esc(f.nome) + '</label>').join('') + '</div>') +
+      (st === 'bloqueado' ? '' : (() => {
+        const caixa = f => '<label><input type="checkbox" ' + (minhas.has(f.id) ? 'checked' : '') +
+          ' onchange="alternarFuncao(\'' + p.id + '\',\'' + f.id + '\',this.checked,this)"> ' + esc(f.nome) + '</label>';
+        const acesso = funcoes.filter(f => FUNCOES_ACESSO.includes(f.nome)), areas = funcoes.filter(f => !FUNCOES_ACESSO.includes(f.nome));
+        return '<div class="grupoFuncoes"><span>Acesso</span><div class="funcoes">' + acesso.map(caixa).join('') + '</div></div>' +
+          (areas.length ? '<div class="grupoFuncoes"><span>Áreas</span><div class="funcoes">' + areas.map(caixa).join('') + '</div></div>' : '');
+      })()) +
       '</div><div>' + acoes + '</div></div></div>';
   };
   const secao = (titulo, lista, vazio) => '<div class="section"><h2>' + titulo + ' (' + lista.length + ')</h2>' +
     (lista.length ? lista.map(cartao).join('') : '<div class="empty">' + vazio + '</div>') + '</div>';
   shell('Equipe e acessos', 'Quem usa a plataforma e o que cada pessoa pode fazer',
-    '<div class="notice"><b>Direção</b> faz tudo, inclusive repertório, personagens, aprovações e acessos. ' +
-    '<b>Produção</b> cuida de ensaios, demandas, divulgação, orçamento, checklist, ficha técnica, elenco e sessões. ' +
-    '<b>Elenco</b> vê a plataforma, anexa textos das esquetes e responde às convocações.<br>' +
-    '<b>Financeiro</b>: orçamento. <b>Divulgação, Social Media, Fotografia, Vídeo</b>: divulgação. ' +
-    '<b>Figurino, Adereços, Direção de arte, Técnico</b>: necessidades de cena e checklist. ' +
-    '<b>Assistente de produção</b>: demandas e checklist. <b>Convidado</b>: só consulta. ' +
-    'Aprovações continuam com a Direção. Marque quantas funções a pessoa tiver; as permissões se somam.</div>' +
+    guiaFuncoes() +
     secao('Aguardando aprovação', grupo('pendente'), 'Nenhum pedido novo.') +
     secao('Equipe', grupo('aprovado'), 'Ninguém aprovado ainda.') +
     (grupo('bloqueado').length ? secao('Sem acesso', grupo('bloqueado'), '') : ''));
