@@ -219,3 +219,4 @@ body:has(.modal.show) #barraInferior { display: none; }
 }
 .gradeTexto { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .gradeTexto a.filter { color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; }
+.textoAcoes { display: flex; gap: 6px; flex-wrap: wrap; flex-basis: 100%; }

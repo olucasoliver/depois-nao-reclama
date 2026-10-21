@@ -145,13 +145,58 @@ function arquivoEscolhido(inp) {
 async function enviarTextoEsquete(esq, arquivo) {
   const ext = extensao(arquivo.name);
   const limpo = arquivo.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]+/g, '-').slice(-80);
-  const caminho = esq.id + '/' + Date.now() + '-' + limpo;
+  // Cada pessoa envia dentro de <esquete>/<seu id>/, o que permite apagar só o que enviou
+  const caminho = esq.id + '/' + user.id + '/' + Date.now() + '-' + limpo;
   const up = await sbClient.storage.from('esquetes-textos').upload(caminho, arquivo, { contentType: TIPOS_TEXTO[ext], upsert: false });
-  if (up.error) return { erro: /bucket|not found/i.test(up.error.message) ? 'Falta rodar o arquivo supabase/008_textos_das_esquetes.sql no Supabase (SQL Editor).' : up.error.message };
-  const r = await sbClient.from('esquetes').update({ texto_arquivo: caminho, texto_nome: arquivo.name }).eq('id', esq.id);
-  if (r.error) { await sbClient.storage.from('esquetes-textos').remove([caminho]); return { erro: /texto_arquivo|texto_nome/.test(r.error.message) ? 'Falta rodar o arquivo supabase/008_textos_das_esquetes.sql no Supabase (SQL Editor).' : r.error.message }; }
-  if (esq.texto_arquivo && esq.texto_arquivo !== caminho) await sbClient.storage.from('esquetes-textos').remove([esq.texto_arquivo]);
+  if (up.error) return { erro: /bucket|not found/i.test(up.error.message) ? 'Falta rodar o arquivo supabase/008_textos_das_esquetes.sql no Supabase (SQL Editor).'
+    : /row-level|policy|permission|unauthorized/i.test(up.error.message) ? 'Sem permissão para enviar. Falta rodar o arquivo supabase/011_elenco_envia_textos.sql no Supabase (SQL Editor).' : up.error.message };
+  const r = await sbClient.rpc('anexar_texto_esquete', { p_esquete: String(esq.id), p_caminho: caminho, p_nome: arquivo.name });
+  if (r.error) {
+    await sbClient.storage.from('esquetes-textos').remove([caminho]);
+    return { erro: /anexar_texto_esquete|function/i.test(r.error.message) ? 'Falta rodar o arquivo supabase/011_elenco_envia_textos.sql no Supabase (SQL Editor).' : r.error.message };
+  }
+  if (r.data && r.data !== caminho) await sbClient.storage.from('esquetes-textos').remove([r.data]);
   return {};
+}
+async function removerTextoEsquete(id) {
+  const r = await sbClient.rpc('remover_texto_esquete', { p_esquete: String(id) });
+  if (r.error) return { erro: /remover_texto_esquete|function/i.test(r.error.message) ? 'Falta rodar o arquivo supabase/011_elenco_envia_textos.sql no Supabase (SQL Editor).' : r.error.message };
+  if (r.data) await sbClient.storage.from('esquetes-textos').remove([r.data]);
+  return {};
+}
+/* Elenco: anexar, trocar ou remover o texto direto na ficha da esquete */
+function podeEnviarTexto() { return eDirecao() || temFuncao('Elenco'); }
+function podeMexerNoTexto(x) { return eDirecao() || (podeEnviarTexto() && (!x.texto_arquivo || x.texto_enviado_por === user.id)); }
+function nomeDaConta(pid) {
+  if (!pid) return '';
+  if (user && pid === user.id) return 'você';
+  const el = DB.elenco.find(e => e.perfil_id === pid); if (el) return el.nome;
+  const tc = (DB.tecnica || []).find(e => e.perfil_id === pid); if (tc) return tc.nome;
+  const pf = (DB.perfis || []).find(p => p.id === pid); return pf ? pf.nome || '' : '';
+}
+function escolherTextoFicha(id) {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.pdf,.doc,.docx,.odt';
+  inp.onchange = async () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    if (!TIPOS_TEXTO[extensao(f.name)]) return avisar('Escolha um arquivo PDF ou Word (.pdf, .doc, .docx ou .odt).', 'erro');
+    if (f.size > 20 * 1024 * 1024) return avisar('O arquivo tem mais de 20 MB. Diminua o tamanho ou use um link do Drive.', 'erro');
+    const x = DB.esquetes.find(e => e.id === id); if (!x) return;
+    avisar('Enviando o texto...');
+    const enviando = document.querySelector('#avisos .aviso:last-child');
+    const env = await enviarTextoEsquete(x, f);
+    if (enviando) enviando.remove();
+    if (env.erro) return alert('O texto não foi anexado. ' + env.erro);
+    await load(); avisar('Texto anexado.');
+  };
+  inp.click();
+}
+async function removerTextoFicha(id) {
+  const x = DB.esquetes.find(e => e.id === id);
+  if (!x || !await confirmar('Remover o texto "' + (x.texto_nome || 'anexado') + '"?\n\nO arquivo deixa de aparecer para toda a equipe.')) return;
+  const r = await removerTextoEsquete(id);
+  if (r.erro) return alert('Não foi possível remover: ' + r.erro);
+  await load(); avisar('Texto removido.');
 }
 async function abrirTextoEsquete(id, baixar) {
   const x = DB.esquetes.find(e => e.id === id);
@@ -193,9 +238,8 @@ async function salvarEsquete() {
     if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
     if (env.erro) { await load(); return alert('A esquete foi salva, mas o texto não foi anexado. ' + env.erro); }
   } else if (removerTextoAnexado && antes && antes.texto_arquivo) {
-    const caminhoAntigo = antes.texto_arquivo;
-    await sbClient.from('esquetes').update({ texto_arquivo: null, texto_nome: null }).eq('id', antes.id);
-    await sbClient.storage.from('esquetes-textos').remove([caminhoAntigo]);
+    const rem = await removerTextoEsquete(antes.id);
+    if (rem.erro) { await load(); return alert('A esquete foi salva, mas o texto não foi removido. ' + rem.erro); }
   }
   fecharModalEsquete(); await load();
   if (r.data && r.data.id) abrirEsquete(r.data.id);
@@ -226,12 +270,15 @@ function esqueteDetalhe() {
     '<div><span>Situação</span>' + esc(x.situacao || 'Sem situação') + '</div>' +
     '<div><span>Origem</span>' + esc(x.responsavel_origem || 'Não informada') + '</div>' +
     '<div><span>Na grade</span>' + (pos >= 0 ? 'Posição ' + (pos + 1) + ' de ' + grade.length : 'Não') + '</div></div>' +
-    (x.texto_arquivo || x.texto_url ? '<div class="textoEsquete">' +
+    (x.texto_arquivo || x.texto_url || (!dir && podeEnviarTexto()) ? '<div class="textoEsquete">' +
       (x.texto_arquivo ? (extensao(x.texto_nome || x.texto_arquivo) === 'pdf'
         ? '<button class="btn" onclick="abrirTextoEsquete(\'' + x.id + '\')">Abrir o texto</button><button class="filter" onclick="abrirTextoEsquete(\'' + x.id + '\',true)">Baixar</button>'
         : '<button class="btn" onclick="abrirTextoEsquete(\'' + x.id + '\',true)">Baixar o texto (Word)</button>') +
-        '<span class="meta">' + esc(x.texto_nome || '') + '</span>' : '') +
+        '<span class="meta">' + esc(x.texto_nome || '') + (x.texto_enviado_por ? ' · enviado por ' + esc(nomeDaConta(x.texto_enviado_por) || 'alguém da equipe') : '') + '</span>' : '') +
       (x.texto_url ? '<a class="' + (x.texto_arquivo ? 'filter' : 'btn') + '" style="display:inline-block;text-decoration:none" href="' + attr(x.texto_url) + '" target="_blank" rel="noopener">' + (x.texto_arquivo ? 'Abrir o link' : 'Abrir o texto') + '</a>' : '') +
+      (!dir && podeMexerNoTexto(x) ? '<div class="textoAcoes">' +
+        '<button class="filter" onclick="escolherTextoFicha(\'' + x.id + '\')">' + (x.texto_arquivo ? 'Trocar meu texto' : 'Anexar texto (PDF ou Word)') + '</button>' +
+        (x.texto_arquivo ? '<button class="filter" onclick="removerTextoFicha(\'' + x.id + '\')">Remover</button>' : '') + '</div>' : '') +
       '</div>' : '') +
     (x.sinopse ? '<div class="fichaBloco"><span>Sinopse</span>' + esc(x.sinopse).replace(/\n/g, '<br>') + '</div>' : '') +
     (x.notas_direcao ? '<div class="fichaBloco"><span>Notas da direção</span>' + esc(x.notas_direcao).replace(/\n/g, '<br>') + '</div>' : '') +
