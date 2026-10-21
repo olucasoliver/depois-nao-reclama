@@ -14,20 +14,23 @@ function moeda(v) { const n = Number(v) || 0; return (n < 0 ? '- ' : '') + 'R$ '
    e as contas da equipe que não estão ligadas a ninguém do elenco (sem repetir a mesma pessoa) */
 function pessoasDaEquipe() {
   const ordenar = l => [...new Set(l.map(n => String(n || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  const ligados = new Set(DB.elenco.map(e => e.perfil_id).filter(Boolean));
-  const elenco = ordenar(DB.elenco.map(e => e.nome));
-  const doElenco = new Set(elenco.map(n => n.toLowerCase()));
-  const equipe = ordenar((DB.perfis || []).filter(p => p.status === 'aprovado' && !ligados.has(p.id)).map(p => p.nome))
-    .filter(n => !doElenco.has(n.toLowerCase()));
-  return { elenco, equipe };
+  const tec = DB.tecnica || [];
+  const ligados = new Set(DB.elenco.map(e => e.perfil_id).concat(tec.map(e => e.perfil_id)).filter(Boolean));
+  const usados = new Set();
+  const semRepetir = l => l.filter(n => { const k = n.toLowerCase(); if (usados.has(k)) return false; usados.add(k); return true; });
+  const elenco = semRepetir(ordenar(DB.elenco.map(e => e.nome)));
+  const grupos = {};
+  ['Produção', 'Técnica', 'Staff'].forEach(g => { grupos[g] = semRepetir(ordenar(tec.filter(p => (p.grupo || 'Produção') === g).map(p => p.nome))); });
+  const equipe = semRepetir(ordenar((DB.perfis || []).filter(p => p.status === 'aprovado' && !ligados.has(p.id)).map(p => p.nome)));
+  return { elenco, grupos, equipe };
 }
-function nomesDaEquipe() { const p = pessoasDaEquipe(); return p.elenco.concat(p.equipe); }
+function nomesDaEquipe() { const p = pessoasDaEquipe(); return p.elenco.concat(...Object.values(p.grupos), p.equipe); }
 
 function campoResponsavel(id) {
   const p = pessoasDaEquipe();
   const grupo = (rot, l) => l.length ? '<optgroup label="' + rot + '">' + l.map(n => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join('') + '</optgroup>' : '';
   return '<select id="' + id + '" onchange="responsavelMudou(\'' + id + '\')"><option value="">Sem responsável</option>' +
-    grupo('Elenco', p.elenco) + grupo('Equipe', p.equipe) +
+    grupo('Elenco', p.elenco) + Object.entries(p.grupos).map(([g, l]) => grupo(g, l)).join('') + grupo('Outras contas da equipe', p.equipe) +
     '<option value="__outro">Outra pessoa (fora da equipe)...</option></select>' +
     '<input id="' + id + 'Outro" class="responsavelOutro" placeholder="Nome da pessoa" hidden>';
 }
