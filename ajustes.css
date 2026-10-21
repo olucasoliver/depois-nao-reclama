@@ -198,3 +198,10 @@ h1.title { margin: 5px 0; line-height: 1.05; }
 /* Campos não estouram a janela quando uma opção é longa */
 .formgrid > .field { min-width: 0; }
 .field select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+
+/* Contatos nos cartões do Elenco e de Técnica e Staff */
+.contatos { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; text-align: left; font-size: 12.5px; }
+.contatos div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.contatos span { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.contatos a { color: var(--pink); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contatos a:hover { text-decoration: underline; }

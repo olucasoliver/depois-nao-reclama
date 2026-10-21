@@ -20,6 +20,74 @@ function fotoDaPessoa(n) {
 
 function iniciais(nome) { return String(nome || '').split(' ').filter(Boolean).map(x => x[0]).slice(0, 2).join('').toUpperCase(); }
 
+/* ---------- Contatos (telefone, e-mail, rede social) ---------- */
+const CAMPOS_CONTATO = ['telefone', 'email', 'rede_social'];
+/* Valor do cadastro; se vazio, usa o da mesma pessoa na outra aba (Elenco ↔ Técnica e Staff) */
+function contatoDe(n, campo) {
+  if (n[campo]) return n[campo];
+  const outro = DB.elenco.includes(n) ? cadastroTecnicaDaConta(n.perfil_id) : cadastroElencoDaConta(n.perfil_id);
+  return outro && outro[campo] ? outro[campo] : '';
+}
+function linkTelefone(t) {
+  const dig = String(t).replace(/\D/g, '');
+  if (dig.length < 8) return esc(t);
+  const wa = dig.length <= 11 ? '55' + dig : dig;
+  return '<a href="https://wa.me/' + wa + '" target="_blank" rel="noopener" title="Abrir no WhatsApp">' + esc(t) + '</a>';
+}
+function hrefRede(r) {
+  r = String(r || '').trim();
+  if (/^@[\w.]+$/.test(r)) return 'https://www.instagram.com/' + r.slice(1);
+  if (/^https?:\/\//i.test(r)) return r;
+  if (/^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+\/\S*$/i.test(r) || /^(www\.)?[a-z0-9-]+\.(com|com\.br|net|me|tv)(\/|$)/i.test(r)) return 'https://' + r;
+  return null;
+}
+function rotuloRede(r) {
+  const h = hrefRede(r);
+  if (!h || /^@/.test(r)) return esc(r);
+  const m = h.match(/(instagram|tiktok|facebook|linkedin|youtube|twitter|x)\.com\/(@?[\w.\-]+)/i);
+  return m ? esc((m[2].startsWith('@') ? '' : '@') + m[2]) : esc(r.replace(/^https?:\/\/(www\.)?/i, ''));
+}
+function blocoContatos(n) {
+  const t = contatoDe(n, 'telefone'), e = contatoDe(n, 'email'), r = contatoDe(n, 'rede_social');
+  const linhas = [];
+  if (t) linhas.push('<div><span>Telefone</span>' + linkTelefone(t) + '</div>');
+  if (e) linhas.push('<div><span>E-mail</span><a href="mailto:' + esc(e) + '">' + esc(e) + '</a></div>');
+  if (r) { const h = hrefRede(r); linhas.push('<div><span>Rede social</span>' + (h ? '<a href="' + esc(h) + '" target="_blank" rel="noopener">' + rotuloRede(r) + '</a>' : esc(r)) + '</div>'); }
+  if (!linhas.length && n.contato) linhas.push('<div>' + linkContato(n.contato) + '</div>');
+  return linhas.length ? '<div class="contatos">' + linhas.join('') + '</div>' : '';
+}
+function camposContato(prefixo) {
+  return '<div class="field"><label>Telefone / WhatsApp</label><input id="' + prefixo + 'Telefone" type="tel" inputmode="tel" placeholder="(67) 99999-9999"></div>' +
+    '<div class="field"><label>E-mail</label><input id="' + prefixo + 'Email" type="email" placeholder="nome@email.com"></div>' +
+    '<div class="field full"><label>Rede social</label><input id="' + prefixo + 'Rede" placeholder="@usuario ou link do perfil (Instagram, TikTok...)"></div>';
+}
+function preencherContatos(prefixo, r) {
+  const outro = r ? (DB.elenco.includes(r) ? cadastroTecnicaDaConta(r.perfil_id) : cadastroElencoDaConta(r.perfil_id)) : null;
+  [['Telefone', 'telefone'], ['Email', 'email'], ['Rede', 'rede_social']].forEach(([s, c]) => {
+    const i = document.getElementById(prefixo + s);
+    i.value = (r && r[c]) || '';
+    i.dataset.ph = i.dataset.ph || i.placeholder;
+    i.placeholder = outro && outro[c] ? 'Igual ao outro cadastro: ' + outro[c] : i.dataset.ph;
+  });
+}
+function lerContatos(prefixo) {
+  const g = s => document.getElementById(prefixo + s).value.trim();
+  const email = g('Email');
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { erro: 'Confira o e-mail: ' + email };
+  return { telefone: g('Telefone') || null, email: email || null, rede_social: g('Rede') || null };
+}
+/* Grava; se o 010 ainda não foi rodado, salva sem os contatos e avisa */
+async function gravarComContatos(tabela, payload, id) {
+  const gravar = p => id ? sbClient.from(tabela).update(p).eq('id', id) : sbClient.from(tabela).insert(p);
+  let r = await gravar(payload);
+  if (r.error && /telefone|email|rede_social/.test(r.error.message)) {
+    const sem = Object.assign({}, payload); CAMPOS_CONTATO.forEach(c => delete sem[c]);
+    r = await gravar(sem);
+    if (!r.error) avisar('Salvo, mas sem os contatos: falta rodar o arquivo supabase/010_contatos.sql no Supabase (SQL Editor).', 'erro');
+  }
+  return r;
+}
+
 function linkContato(c) {
   c = String(c || '').trim();
   if (!c) return '';
@@ -38,7 +106,7 @@ function producaoTecnica() {
     '<b>' + esc(n.nome) + '</b>' +
     (n.funcao ? '<div class="meta">' + esc(n.funcao) + '</div>' : '') +
     (cadastroElencoDaConta(n.perfil_id) ? '<div class="meta">Também no Elenco</div>' : '') +
-    (n.contato ? '<div class="meta contatoPessoa">' + linkContato(n.contato) + '</div>' : '') +
+    blocoContatos(n) +
     (gest ? '<div style="margin-top:12px"><button class="filter" onclick="abrirModalTecnica(\'' + n.id + '\')">Editar</button>' +
       '<button class="filter" style="margin-left:6px" onclick="inativarTecnica(\'' + n.id + '\')">Inativar</button></div>' : '') +
     '</div>';
@@ -61,8 +129,8 @@ function modalTecnica() {
     '<div class="field full"><label>Nome</label><input id="xNome" placeholder="Nome como deve aparecer na plataforma"></div>' +
     '<div class="field"><label>Grupo</label><select id="xGrupo" onchange="document.getElementById(\'xFuncao\').placeholder=EXEMPLOS_FUNCAO[this.value]">' + GRUPOS_TECNICA.map(g => '<option>' + g + '</option>').join('') + '</select></div>' +
     '<div class="field"><label>Função</label><input id="xFuncao"></div>' +
-    '<div class="field"><label>Contato</label><input id="xContato" placeholder="Telefone, e-mail ou @"></div>' +
-    '<div class="field"><label>Conta na plataforma</label><select id="xPerfil" onchange="contaTecnicaEscolhida()"></select></div>' +
+    camposContato('x') +
+    '<div class="field full"><label>Conta na plataforma</label><select id="xPerfil" onchange="contaTecnicaEscolhida()"></select></div>' +
     '<div class="field full" id="xDoElenco" hidden></div>' +
     '<div class="field full"><label>Foto</label><input id="xFoto" type="file" accept="image/png,image/jpeg,image/webp"></div>' +
     '<div class="field full"><label>Observações</label><textarea id="xObs" placeholder="Informações úteis sobre a pessoa..."></textarea></div>' +
@@ -104,7 +172,8 @@ function abrirModalTecnica(id, grupo) {
   document.getElementById('tecnicaTitulo').textContent = r ? 'Editar pessoa' : 'Nova pessoa';
   const v = (i, val) => { document.getElementById(i).value = val || ''; };
   v('xNome', r && r.nome); v('xGrupo', r ? grupoTecnica(r) : (grupo || 'Técnica')); v('xFuncao', r && r.funcao);
-  v('xContato', r && r.contato); v('xObs', r && r.observacoes);
+  v('xObs', r && r.observacoes);
+  preencherContatos('x', r);
   document.getElementById('xFuncao').placeholder = EXEMPLOS_FUNCAO[document.getElementById('xGrupo').value];
   document.getElementById('xPerfil').innerHTML = opcoesContasTecnica(r && r.perfil_id);
   document.getElementById('xFoto').value = '';
@@ -117,7 +186,9 @@ async function salvarTecnica() {
   const g = i => document.getElementById(i).value.trim();
   const nome = g('xNome');
   if (!nome) return alert('Informe o nome da pessoa.');
-  const payload = { nome, grupo: g('xGrupo'), funcao: g('xFuncao'), contato: g('xContato'), observacoes: g('xObs'), perfil_id: g('xPerfil') || null, ativo: true };
+  const contatos = lerContatos('x');
+  if (contatos.erro) return alert(contatos.erro);
+  const payload = Object.assign({ nome, grupo: g('xGrupo'), funcao: g('xFuncao'), observacoes: g('xObs'), perfil_id: g('xPerfil') || null, ativo: true }, contatos);
   const foto = document.getElementById('xFoto').files[0];
   const usarElenco = document.getElementById('xUsarFotoElenco');
   if (!foto && usarElenco && usarElenco.checked) payload.foto_url = null;
@@ -130,8 +201,7 @@ async function salvarTecnica() {
     if (up.error) return alert('Não foi possível enviar a foto: ' + up.error.message);
     payload.foto_url = sbClient.storage.from('elenco-fotos').getPublicUrl(caminho).data.publicUrl;
   }
-  const r = tecnicaEditando ? await sbClient.from('equipe_tecnica').update(payload).eq('id', tecnicaEditando.id)
-                            : await sbClient.from('equipe_tecnica').insert(payload);
+  const r = await gravarComContatos('equipe_tecnica', payload, tecnicaEditando && tecnicaEditando.id);
   if (r.error) return alert(/equipe_tecnica/.test(r.error.message)
     ? 'Falta rodar o arquivo supabase/009_producao_tecnica_staff.sql no Supabase (SQL Editor).'
     : 'Não foi possível salvar: ' + r.error.message);
