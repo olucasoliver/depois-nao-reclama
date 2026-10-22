@@ -139,3 +139,20 @@ input[type=checkbox], input[type=radio] { accent-color: var(--pink); }
   #main td:empty { display: none; }
   #main td:last-child { display: flex; gap: 6px; padding-top: 8px; }
 }
+
+/* Checklist Final: itens agrupados por tipo dentro de cada esquete */
+.grupoTipo { border-top: 1px solid var(--suave); }
+.grupoTipo summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 11px 0; }
+.grupoTipo summary::-webkit-details-marker { display: none; }
+.grupoTipo .chip { min-width: 84px; text-align: center; }
+.grupoResumo { font-weight: 600; font-size: 14px; }
+.grupoTipo.completo .grupoResumo { color: var(--green); }
+.grupoResp { margin-left: auto; text-align: right; }
+.grupoSeta { width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin: 0 4px 3px 8px; transition: transform .15s ease; flex-shrink: 0; }
+.grupoTipo:not(:has(.grupoResp)) .grupoSeta { margin-left: auto; }
+.grupoTipo[open] .grupoSeta { transform: rotate(-135deg); margin-bottom: -3px; }
+.grupoItens { padding: 0 0 8px 12px; }
+.grupoItens .linha { padding: 8px 0; }
+.semItens b { display: block; margin-bottom: 4px; }
+.semItens .tituloLink { white-space: nowrap; }
+@media print { .grupoTipo summary .grupoSeta { display: none; } }
