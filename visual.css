@@ -1,0 +1,119 @@
+/* Visual: fonte Fira Sans Condensed, um tom só de destaque, menos maiúsculas,
+   cartões sem borda fina e três tipos de botão. Carrega por último. */
+
+@font-face { font-family: 'Fira Sans Condensed'; font-weight: 400; font-style: normal; font-display: swap; src: url('./assets/fonts/fira-sans-condensed-400.woff2') format('woff2'); }
+@font-face { font-family: 'Fira Sans Condensed'; font-weight: 500; font-style: normal; font-display: swap; src: url('./assets/fonts/fira-sans-condensed-500.woff2') format('woff2'); }
+@font-face { font-family: 'Fira Sans Condensed'; font-weight: 600; font-style: normal; font-display: swap; src: url('./assets/fonts/fira-sans-condensed-600.woff2') format('woff2'); }
+@font-face { font-family: 'Fira Sans Condensed'; font-weight: 700; font-style: normal; font-display: swap; src: url('./assets/fonts/fira-sans-condensed-700.woff2') format('woff2'); }
+@font-face { font-family: 'Fira Sans Condensed'; font-weight: 800 900; font-style: normal; font-display: swap; src: url('./assets/fonts/fira-sans-condensed-800.woff2') format('woff2'); }
+
+:root {
+  --ink: #1d1b1e;
+  --muted: #6b6970;
+  --line: #e3e3e6;
+  --suave: #efeff1;
+  --fundo: #f4f4f5;
+  --escuro: #1d1b1e;
+  --pink: #d81b60;
+  --pink2: #d81b60;
+  --pinkClaro: #ff6f9f;  /* o mesmo rosa, clareado só para texto sobre fundo escuro */
+}
+
+/* ---------- Fonte ---------- */
+body { font-family: 'Fira Sans Condensed', system-ui, -apple-system, 'Segoe UI', sans-serif; background: var(--fundo); color: var(--ink); letter-spacing: 0; font-size: 16px; }
+button, input, select, textarea { font-family: inherit; }
+.title { font-weight: 800; letter-spacing: -.01em; }
+.brand { font-weight: 800; letter-spacing: .01em; }
+#topoCelular button { font-weight: 800; }
+h2, h3 { letter-spacing: 0; }
+
+/* ---------- Um tom só de destaque ---------- */
+.side { background: var(--escuro); border-right: 0; }
+.next, .sessao, #topoCelular, #barraInferior { background: var(--escuro); }
+.next .eyebrow, .sessao .eyebrow, .sessaoConta { color: var(--pinkClaro) !important; }
+.notice { background: #fff; color: var(--ink); border-left: 3px solid var(--pink); border-radius: 0 10px 10px 0; }
+.notice b { color: var(--ink); }
+.avatar { background: var(--escuro); color: #fff; }
+.badge, .chip { background: var(--suave); color: var(--muted); }
+.badge.naGrade { background: var(--ink); color: #fff; }
+.close { background: var(--suave); }
+.col { background: #e9e9ec; }
+.col.vazia { background: transparent; outline: 1px dashed #cfcfd4; outline-offset: -1px; }
+.barraFundo { background: #e3e3e6; }
+.trecho.est { background: repeating-linear-gradient(45deg, #cfcfd4, #cfcfd4 6px, #e3e3e6 6px, #e3e3e6 12px); }
+.trecho.est span { color: var(--ink); }
+.nav button.active, .nav button:hover { background: #ffffff14; transform: none; }
+.nav button.active { border-left-color: var(--pink); }
+.insta, .brand small { color: #d9d9de; }
+.usuario { color: #c9c9ce; }
+
+/* ---------- Menos maiúsculas: rótulos do conteúdo em letra normal ---------- */
+.eyebrow,
+.stat span,
+.col h3,
+.field label,
+th,
+.sessaoInfo span,
+.fichaInfo span, .fichaBloco span, .grupoItem > span,
+.projInfo span, .rotTopo span, .cenaGrid > div > span,
+.detLinha span,
+.contatos span,
+.guiaColunas h3,
+.meuTipo,
+.grupoFuncoes > span {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+.eyebrow { color: var(--pink); }
+.sessaoInfo span { color: #b9b9bf; }
+.col h3 { font-size: 15px !important; font-weight: 700 !important; color: var(--ink); }
+.meuTipo { color: var(--muted); flex-basis: 96px !important; }
+.gradeStats .stat span { font-size: 11.5px !important; }
+
+/* ---------- Cartões: sem borda fina; sombra só ao passar o mouse no que é clicável ---------- */
+.card, .stat, .item, .meuAcesso, .guiaFuncoes, table { border: 0 !important; box-shadow: none !important; }
+.esqCard, .tarefaCard, .person, .meuItem { transition: box-shadow .15s ease, background-color .15s ease; }
+.esqCard:hover, .tarefaCard:hover, .person:hover { box-shadow: 0 6px 20px rgba(0, 0, 0, .08) !important; }
+.item { background: #fff; }
+.guiaColunas dt, .suasFuncoes dt, .meuItem, .pend, .linha, .contatos, .guiaRodape, .detInfo, .detEntregas { border-color: var(--suave) !important; }
+
+/* ---------- Três tipos de botão ---------- */
+/* principal: cheio */
+.btn, .filter.forte {
+  background: var(--pink); color: #fff; border: 1px solid var(--pink);
+  border-radius: 10px; font-weight: 700; box-shadow: none !important; transform: none !important;
+}
+.btn:hover, .filter.forte:hover { filter: brightness(.92); }
+/* secundário: contorno */
+.filter {
+  background: #fff; color: var(--ink); border: 1px solid #d4d4d8; border-radius: 10px; font-weight: 500;
+}
+.filter:hover { border-color: var(--ink); }
+/* filtros da página continuam em formato de pílula */
+.filters .filter { border-radius: 999px; }
+.filter.active { background: var(--pink); border-color: var(--pink); color: #fff; }
+/* discreto: só texto */
+.filter.discreto { background: transparent; border-color: transparent; color: var(--muted); font-weight: 500; }
+.filter.discreto:hover { color: #b3261e; border-color: transparent; }
+/* sobre fundo escuro */
+.sessao .filter, .filter.claro, .next .filter { background: #ffffff14; border-color: #ffffff33; color: #fff; }
+.btn.perigo { background: #b3261e; border-color: #b3261e; }
+
+/* ---------- Ajustes menores ---------- */
+.saudacaoSub { color: var(--muted); }
+@media print {
+  body { font-family: 'Fira Sans Condensed', Arial, sans-serif; }
+  .card { border: 1px solid #ccc !important; }
+}
+
+/* A fonte condensada fica menor no mesmo tamanho: textos de apoio um pouco maiores */
+.meta { font-size: 13.5px; }
+.sub { font-size: 15px; }
+.badge, .chip { font-size: 12px; }
+.filter { font-size: 13.5px; }
+.btn { font-size: 15px; }
+#nav > button { font-size: 13.5px; }
+.gradeStats { border: 0 !important; }
+.meuTexto span, .detLinha b, .contatos { font-size: 13.5px; }

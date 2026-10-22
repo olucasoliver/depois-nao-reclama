@@ -93,7 +93,7 @@ h1.title { margin: 5px 0; line-height: 1.05; }
   .folhaTopo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .folhaTopo b { font-size: 17px; }
   .folhaLista { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .folhaLista button { text-align: left; background: #f6f3f5; border: 0; border-radius: 12px; padding: 14px 12px; font: inherit; font-size: 14px; color: var(--ink); cursor: pointer; min-height: 48px; }
+  .folhaLista button { text-align: left; background: #f4f4f5; border: 0; border-radius: 12px; padding: 14px 12px; font: inherit; font-size: 14px; color: var(--ink); cursor: pointer; min-height: 48px; }
   .folhaLista button.ativo { background: var(--ink); color: #fff; }
   .folhaUsuario { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
   .folhaUsuario b { display: block; font-size: 14px; }
@@ -128,7 +128,7 @@ h1.title { margin: 5px 0; line-height: 1.05; }
 
 /* ---------- Produção: cartões compactos, detalhes ao abrir ---------- */
 .tarefaCard { cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
-.tarefaCard:hover { border-color: #d9c6cf; box-shadow: 0 4px 14px #32151d12; }
+.tarefaCard:hover { border-color: #d4d4d8; box-shadow: 0 4px 14px #0000000f; }
 .tarefaCard:focus-visible { outline: 2px solid var(--pink2); outline-offset: 2px; }
 .tarefaResumo { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.45; margin-top: 6px; }
 .detalheTarefa { width: min(760px, 100%); }
@@ -149,11 +149,11 @@ h1.title { margin: 5px 0; line-height: 1.05; }
 /* Editor com barra de formatação */
 .editorRico { border: 1px solid var(--line); border-radius: 10px; background: #fff; overflow: hidden; }
 .editorRico:focus-within { outline: 2px solid var(--pink2); outline-offset: 1px; }
-.editorBarra { display: flex; flex-wrap: wrap; gap: 2px; padding: 5px; border-bottom: 1px solid var(--line); background: #faf7f8; }
+.editorBarra { display: flex; flex-wrap: wrap; gap: 2px; padding: 5px; border-bottom: 1px solid var(--line); background: #fafafa; }
 .editorBarra button { border: 0; background: none; border-radius: 7px; padding: 6px 10px; font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; min-height: 32px; }
-.editorBarra button:hover { background: #eee8eb; }
+.editorBarra button:hover { background: #ebebed; }
 .editorArea { min-height: 160px; max-height: 50vh; overflow-y: auto; padding: 11px 12px; font-size: 14px; line-height: 1.55; outline: none; }
-.editorArea:empty::before { content: attr(data-placeholder); color: #a89ea3; }
+.editorArea:empty::before { content: attr(data-placeholder); color: #9b9ba1; }
 @media (max-width: 650px) {
   .editorBarra button { min-height: 38px; padding: 8px 11px; }
   .detAcoes > * { flex: 1 1 auto; }
@@ -166,7 +166,7 @@ h1.title { margin: 5px 0; line-height: 1.05; }
 .entregaLinha input { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: inherit; min-width: 0; }
 .detEntregas { margin: -4px 0 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
 .detEntregas .detLinha { margin-bottom: 2px; }
-.entregaItem { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #f6f3f5; border-radius: 10px; font-size: 14px; cursor: pointer; }
+.entregaItem { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #f4f4f5; border-radius: 10px; font-size: 14px; cursor: pointer; }
 .entregaItem input { width: 18px; height: 18px; accent-color: var(--pink); margin: 0; }
 .entregaItem b { min-width: 46px; }
 .entregaItem span:not(.chip) { flex: 1; }
@@ -177,12 +177,12 @@ h1.title { margin: 5px 0; line-height: 1.05; }
 }
 
 /* Texto da esquete (PDF/Word) */
-.arquivoEscolher { position: relative; display: inline-flex; align-items: center; gap: 8px; border: 1px dashed #cdbcc4; border-radius: 10px; padding: 11px 14px; cursor: pointer; font-size: 14px; background: #faf7f8; max-width: 100%; }
+.arquivoEscolher { position: relative; display: inline-flex; align-items: center; gap: 8px; border: 1px dashed #d4d4d8; border-radius: 10px; padding: 11px 14px; cursor: pointer; font-size: 14px; background: #fafafa; max-width: 100%; }
 .arquivoEscolher:hover { border-color: var(--pink2); }
 .arquivoEscolher:focus-within { outline: 2px solid var(--pink2); outline-offset: 1px; }
 .arquivoEscolher input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .arquivoEscolher span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.arquivoAtual { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; background: #f6f3f5; border-radius: 10px; font-size: 14px; margin-bottom: 8px; word-break: break-all; }
+.arquivoAtual { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; background: #f4f4f5; border-radius: 10px; font-size: 14px; margin-bottom: 8px; word-break: break-all; }
 .textoEsquete { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 .textoEsquete .meta { margin: 0 4px; }
 .field label.arquivoEscolher { text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
@@ -192,7 +192,7 @@ h1.title { margin: 5px 0; line-height: 1.05; }
 .contatoPessoa a:hover { text-decoration: underline; }
 .section h2 .meta { font-weight: 400; }
 .empty a { color: var(--pink); font-weight: 700; }
-.doElenco { display: flex; gap: 12px; align-items: center; padding: 12px; background: #f6f3f5; border-radius: 12px; }
+.doElenco { display: flex; gap: 12px; align-items: center; padding: 12px; background: #f4f4f5; border-radius: 12px; }
 .doElenco .avatar { width: 52px; height: 52px; margin: 0; flex-shrink: 0; font-size: 14px; }
 .doElenco b { font-size: 14px; }
 /* Campos não estouram a janela quando uma opção é longa */
