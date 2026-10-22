@@ -270,3 +270,9 @@ body:has(.modal.show) #barraInferior { display: none; }
 }
 .suasFuncoes { max-width: 440px; }
 .oQueESeu { margin-top: 0; margin-bottom: 26px; }
+
+/* Abas do menu em maiúsculas (menu lateral, folha "Mais" e barra de baixo) */
+#nav > button, .folhaLista button, #barraInferior button span { text-transform: uppercase; letter-spacing: .05em; }
+#nav > button { font-size: 12.5px; font-weight: 600; }
+.folhaLista button { font-size: 12.5px; font-weight: 600; }
+#barraInferior button span { font-size: 9.5px; font-weight: 600; }
