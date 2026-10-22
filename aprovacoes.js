@@ -60,7 +60,7 @@ function aprovacoes() {
       (ev.length > 1 ? '<details class="hist"><summary>Histórico (' + ev.length + ')</summary>' + ev.map(e =>
         '<div class="meta">' + quandoCurto(e.em) + ' · <b>' + esc(e.por || '') + '</b> ' + esc({ enviado: 'enviou', reenviado: 'reenviou', aprovado: 'aprovou', recusado: 'recusou', ajustes: 'pediu ajustes', cancelado: 'cancelou' }[e.acao] || e.acao) +
         (e.comentario ? ': ' + esc(e.comentario) : '') + '</div>').join('') + '</details>' : '') +
-      '<div class="aprAcoes">' + acoes.join('') + (pagina ? '<button class="filter" onclick="go(\'' + pagina + '\')">Ver em ' + esc(a.tipo === 'Tarefa' ? 'Produção' : a.tipo) + '</button>' : '') + '</div></div>';
+      '<div class="aprAcoes">' + acoes.join('') + (pagina ? '<button class="filter" onclick="go(\'' + pagina + '\')">Ver em ' + esc(a.tipo === 'Tarefa' ? 'Demandas' : a.tipo) + '</button>' : '') + '</div></div>';
   };
 
   shell('Aprovações', dir ? 'Decisões da Produção que dependem de você' : 'Pedidos enviados para a direção',

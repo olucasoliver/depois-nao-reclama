@@ -10,7 +10,7 @@ const O_QUE_LIBERA = {
   'Fotografia': 'trabalha na divulgação', 'Vídeo': 'trabalha na divulgação',
   'Figurino': 'cuida das necessidades de cena e do Checklist Final', 'Adereços': 'cuida das necessidades de cena e do Checklist Final',
   'Direção de arte': 'cuida das necessidades de cena e do Checklist Final', 'Técnico': 'cuida das necessidades de cena e do Checklist Final',
-  'Assistente de produção': 'cuida das demandas da Produção e do Checklist Final',
+  'Assistente de produção': 'cuida das Demandas e do Checklist Final',
   'Convidado': 'acompanha a plataforma'
 };
 /* Tipos de necessidade de cena de cada área */

@@ -190,7 +190,7 @@ const GUIA_AREAS = [
   ['Financeiro', 'Orçamento'],
   ['Divulgação, Social Media, Fotografia, Vídeo', 'Divulgação'],
   ['Figurino, Adereços, Direção de arte, Técnico', 'Necessidades de cena e Checklist Final'],
-  ['Assistente de produção', 'Demandas da Produção e Checklist Final'],
+  ['Assistente de produção', 'Demandas e Checklist Final'],
   ['Convidado', 'Só consulta']
 ];
 function guiaFuncoesConteudo() {

@@ -163,13 +163,13 @@ function producao() {
       }).join('') || '<div class="empty">Nenhuma</div>') + '</div>';
   }).join('');
   const atrasadas = DB.tarefas.filter(t => t.status !== 'Concluído' && t.prazo && diasAte(t.prazo) < 0).length;
-  shell('Produção', 'Tarefas da montagem, do que falta fazer ao que já está pronto',
+  shell('Demandas', 'Tarefas da montagem, do que falta fazer ao que já está pronto',
     '<div class="topoAcoes"><div class="filters">' + ['Todas', 'Minhas', 'Atrasadas'].map(f =>
       '<button class="filter ' + (filtroTarefas === f ? 'active' : '') + '" onclick="filtroTarefas=\'' + f + '\';render()">' + f +
       (f === 'Atrasadas' && atrasadas ? ' (' + atrasadas + ')' : '') + '</button>').join('') + '</div>' +
     (gest ? '<button class="btn" onclick="abrirTarefa()">+ Nova tarefa</button>' : '') + '</div>' +
     '<div class="kanban">' + colunas + '</div>' +
-    '<div class="section notice">Use a Produção para o que precisa ser <b>feito</b> durante a montagem. O <b>Checklist Final</b> é para conferir, perto da estreia, que cada coisa está pronta.</div>' +
+    '<div class="section notice">Use as Demandas para o que precisa ser <b>feito</b> durante a montagem. O <b>Checklist Final</b> é para conferir, perto da estreia, que cada coisa está pronta.</div>' +
     modalTarefa() + '<div id="tarefaDetalhe" class="modal" onclick="if(event.target===this)fecharDetalheTarefa()"></div>');
 }
 function modalTarefa() {
