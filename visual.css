@@ -117,3 +117,25 @@ th,
 #nav > button { font-size: 13.5px; }
 .gradeStats { border: 0 !important; }
 .meuTexto span, .detLinha b, .contatos { font-size: 13.5px; }
+
+/* Revisão: caixas de marcar no tom de destaque, números do orçamento no celular, impressão em fundo branco */
+input[type=checkbox], input[type=radio] { accent-color: var(--pink); }
+.stat b { white-space: nowrap; }
+@media (max-width: 650px) {
+  .grid .stat b { font-size: 22px; }
+  .grid .stat { padding: 14px; }
+}
+@media print {
+  body, .main { background: #fff !important; }
+}
+
+/* Tabelas no celular viram blocos empilhados (Ficha Técnica) */
+@media (max-width: 650px) {
+  #main table, #main thead, #main tbody, #main tr, #main td { display: block; width: 100%; }
+  #main thead { display: none; }
+  #main tr { padding: 12px 0; border-bottom: 1px solid var(--suave); }
+  #main tr:last-child { border-bottom: 0; }
+  #main td { border: 0; padding: 2px 0; font-size: 14.5px; }
+  #main td:empty { display: none; }
+  #main td:last-child { display: flex; gap: 6px; padding-top: 8px; }
+}

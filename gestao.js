@@ -428,12 +428,12 @@ function divulgacao() {
     (gest ? '<div style="display:flex;gap:6px"><button class="filter" onclick="abrirDivulgacao(\'' + x.id + '\')">Editar</button>' +
       '<button class="filter" onclick="excluirDivulgacao(\'' + x.id + '\')">Excluir</button></div>' : '') + '</div>';
   shell('Divulgação', 'Campanha do espetáculo, organizada por fase',
+    (gest ? '<div style="display:flex;justify-content:flex-end"><button class="btn" onclick="abrirDivulgacao()">+ Nova ação</button></div>' : '') +
     '<div class="grid">' +
     '<div class="stat"><b>' + todos.length + '</b><span>Ações planejadas</span></div>' +
     '<div class="stat"><b>' + semana + '</b><span>Saem nos próximos 7 dias</span></div>' +
     '<div class="stat"><b>' + aguardando + '</b><span>Aguardando aprovação</span></div>' +
     '<div class="stat"><b>' + publicadas + '</b><span>Publicadas</span></div></div>' +
-    (gest ? '<div class="section" style="display:flex;justify-content:flex-end"><button class="btn" onclick="abrirDivulgacao()">+ Nova ação</button></div>' : '') +
     (grupos.length ? grupos.map(([f, l]) => '<div class="section"><h2>' + f + ' <span class="meta">(' + l.length + ')</span></h2>' + l.map(cartao).join('') + '</div>').join('')
       : '<div class="empty section">Nenhuma ação de divulgação cadastrada.</div>') +
     modalDivulgacao());

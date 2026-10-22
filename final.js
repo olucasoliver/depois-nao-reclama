@@ -92,7 +92,7 @@ function roteiro() {
     const porTipo = TIPOS_ITEM.map(t => [t, itens.filter(x => (TIPOS_ITEM.includes(x.tipo) ? x.tipo : 'Outros') === t)]).filter(([, l]) => l.length);
     return '<div class="card cena">' +
       '<div class="cenaTopo"><div class="cenaHora">' + (hora ? (estimada(e) || grade.slice(0, i).some(estimada) ? '~' : '') + hora : String(i + 1).padStart(2, '0')) + '</div>' +
-      '<div style="flex:1"><h3>' + String(i + 1).padStart(2, '0') + '. ' + esc(e.titulo) + '</h3>' +
+      '<div style="flex:1"><h3>' + esc(e.titulo) + '</h3>' +
       '<div class="meta">' + (estimada(e) ? (media ? '~' + fmtDur(media) + ' (estimado, sem duração cadastrada)' : 'duração a definir') : fmtDur(e.duracao_min)) +
         ' · ' + (ini ? fmtDur(ini) + ' de espetáculo' : 'início') + '</div></div></div>' +
       '<div class="cenaGrid">' +
