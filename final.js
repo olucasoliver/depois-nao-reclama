@@ -34,8 +34,6 @@ function checklist() {
     barraProgresso(feitos, total) + '</div>';
 
   /* Por esquete: itens agrupados por tipo (Figurino, Adereços...), cada grupo abre e fecha */
-  const comItens = grade.map((e, i) => ({ e, i, itens: itensDe(e.id) })).filter(x => x.itens.length);
-  const semItens = grade.map((e, i) => ({ e, i })).filter(x => !itensDe(x.e.id).length);
   const linhaItem = (x, mostrarResp) => '<div class="linha"><input type="checkbox" ' + (x.pronto ? 'checked' : '') + (cena ? '' : ' disabled') + ' onchange="marcarItem(\'' + x.id + '\',this.checked)">' +
     '<span style="flex:1;' + (x.pronto ? 'text-decoration:line-through;opacity:.6' : '') + '">' + esc(x.descricao) + '</span>' +
     (mostrarResp && x.responsavel ? '<span class="meta">' + esc(x.responsavel) + '</span>' : '') + '</div>';
@@ -51,18 +49,15 @@ function checklist() {
       '<span class="grupoSeta" aria-hidden="true"></span></summary>' +
       '<div class="grupoItens">' + itens.slice().sort((a, b) => Number(a.pronto) - Number(b.pronto)).map(x => linhaItem(x, resp.length > 1)).join('') + '</div></details>';
   };
-  const porEsquete = '<div class="section"><h2>Por esquete da grade</h2>' + (grade.length ? comItens.map(({ e, i, itens }) => {
-    const prontos = itens.filter(x => x.pronto).length;
+  const porEsquete = '<div class="section"><h2>Por esquete da grade</h2>' + (grade.length ? grade.map((e, i) => {
+    const itens = itensDe(e.id), prontos = itens.filter(x => x.pronto).length;
     const tipos = [...new Set(itens.map(x => x.tipo || 'Outros'))].sort((a, b) => (TIPOS_ITEM.indexOf(a) + 99) % 99 - (TIPOS_ITEM.indexOf(b) + 99) % 99);
     return '<div class="card" style="margin-bottom:10px"><div class="fichaTopo"><h3 style="margin:0">' + String(i + 1).padStart(2, '0') + '. ' +
       '<a href="#" class="tituloLink" onclick="abrirEsquete(\'' + e.id + '\');return false">' + esc(e.titulo) + '</a></h3>' +
-      '<span class="meta">' + prontos + ' de ' + itens.length + ' prontos</span></div>' +
-      barraProgresso(prontos, itens.length) +
-      tipos.map(t => grupoTipo(e, t, itens.filter(x => (x.tipo || 'Outros') === t))).join('') + '</div>';
-  }).join('') +
-    (semItens.length ? '<div class="card semItens"><b>Sem itens cadastrados</b><div class="meta">Cadastre figurino, adereços e técnica na ficha da esquete: ' +
-      semItens.map(({ e, i }) => '<a href="#" class="tituloLink" onclick="abrirEsquete(\'' + e.id + '\');return false">' + String(i + 1).padStart(2, '0') + '. ' + esc(e.titulo) + '</a>').join(' · ') + '</div></div>' : '')
-    : '<div class="empty">Nenhuma esquete na grade ainda.</div>') + '</div>';
+      '<span class="meta">' + (itens.length ? prontos + ' de ' + itens.length + ' prontos' : 'Sem itens cadastrados') + '</span></div>' +
+      (itens.length ? barraProgresso(prontos, itens.length) + tipos.map(t => grupoTipo(e, t, itens.filter(x => (x.tipo || 'Outros') === t))).join('')
+        : '<div class="meta">Cadastre figurino, adereços e técnica na ficha da esquete.</div>') + '</div>';
+  }).join('') : '<div class="empty">Nenhuma esquete na grade ainda.</div>') + '</div>';
 
   const linhasGerais = gerais.map(x => '<div class="linha"><input type="checkbox" ' + (x.concluido ? 'checked' : '') + (gest ? '' : ' disabled') +
     ' onchange="alternarChecklist(\'' + x.id + '\',this.checked)" style="accent-color:var(--pink);width:18px;height:18px">' +
