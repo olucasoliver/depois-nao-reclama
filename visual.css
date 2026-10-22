@@ -190,3 +190,9 @@ input[type=checkbox], input[type=radio] { accent-color: var(--pink); }
 .drivePastaTexto b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 650px) { .driveBotoes { justify-content: flex-start; } .driveGradePastas { grid-template-columns: 1fr; } }
 @media (pointer: coarse) and (max-width: 900px) { .enviarPasta { display: none; } }
+
+/* Drive: arrastar e soltar */
+.driveArea { position: relative; min-height: 120px; border-radius: 16px; transition: background-color .12s ease; }
+.driveArea.alvoSoltar { background: #d81b600d; outline: 2px dashed var(--pink); outline-offset: 6px; }
+.driveArea.alvoSoltar::after { content: attr(data-alvo); position: absolute; left: 50%; top: 40px; transform: translateX(-50%); background: var(--pink); color: #fff; font-weight: 700; padding: 10px 16px; border-radius: 10px; pointer-events: none; white-space: nowrap; z-index: 2; }
+.drivePasta.alvoSoltar { outline: 2px dashed var(--pink); outline-offset: 2px; background: #fff5f9; }
