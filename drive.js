@@ -1,7 +1,7 @@
 /* Aba DRIVE/ANEXOS: pastas com arquivos enviados à plataforma e links do Google Drive.
    Toda a equipe envia e baixa; só a Direção apaga e mexe nas pastas. */
 
-let drivePasta = 'todas', driveBusca = '';
+let drivePasta = null, driveBusca = '';   // null = início do Drive
 const driveMiniaturas = {};   // caminho -> link temporário da imagem
 const DRIVE_LIMITE = 50 * 1024 * 1024;
 
@@ -20,24 +20,49 @@ function rotuloTipo(it) {
 }
 function quemEnviou(pid) { return typeof nomeDaConta === 'function' ? nomeDaConta(pid) : ''; }
 
+/* ---------- Estrutura de pastas ---------- */
+function pastasDe(pai) {
+  return (DB.drivePastas || []).filter(p => (p.pai_id || null) === (pai || null))
+    .sort((a, b) => (a.ordem || 999) - (b.ordem || 999) || a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true }));
+}
+function caminhoDaPasta(id) {
+  const l = []; let p = (DB.drivePastas || []).find(x => x.id === id), guarda = 0;
+  while (p && guarda++ < 20) { l.unshift(p); p = (DB.drivePastas || []).find(x => x.id === p.pai_id); }
+  return l;
+}
+function descendentes(id) {
+  const filhos = pastasDe(id).map(p => p.id);
+  return filhos.concat(...filhos.map(descendentes));
+}
+function contarItens(id) {
+  const ids = new Set([id, ...descendentes(id)]);
+  return (DB.driveItens || []).filter(i => ids.has(i.pasta_id)).length;
+}
+function nomeCaminho(id) { return caminhoDaPasta(id).map(p => p.nome).join(' / '); }
+
 function drive() {
-  const pastas = (DB.drivePastas || []).slice().sort((a, b) => (a.ordem || 999) - (b.ordem || 999) || a.nome.localeCompare(b.nome));
-  const itens = DB.driveItens || [];
-  if (drivePasta !== 'todas' && !pastas.some(p => p.id === drivePasta)) drivePasta = 'todas';
   const dir = eDirecao();
+  if (drivePasta && !(DB.drivePastas || []).some(p => p.id === drivePasta)) drivePasta = null;
   const q = driveBusca.trim().toLowerCase();
-  const visiveis = itens.filter(i => (drivePasta === 'todas' || i.pasta_id === drivePasta) &&
-    (!q || (i.nome + ' ' + (i.descricao || '')).toLowerCase().includes(q)))
-    .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
-  const contagem = id => itens.filter(i => i.pasta_id === id).length;
-  const pastaAtual = pastas.find(p => p.id === drivePasta);
+  const itens = DB.driveItens || [];
+  const caminho = drivePasta ? caminhoDaPasta(drivePasta) : [];
+  const subpastas = pastasDe(drivePasta);
+  const visiveis = q
+    ? itens.filter(i => (i.nome + ' ' + (i.descricao || '')).toLowerCase().includes(q))
+    : itens.filter(i => drivePasta && i.pasta_id === drivePasta);
+  visiveis.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true }));
+  const pastasBusca = q ? (DB.drivePastas || []).filter(p => p.nome.toLowerCase().includes(q)) : subpastas;
 
-  const abas = '<div class="filters drivePastas">' +
-    '<button class="filter ' + (drivePasta === 'todas' ? 'active' : '') + '" onclick="drivePasta=\'todas\';render()">Todas <span>' + itens.length + '</span></button>' +
-    pastas.map(p => '<button class="filter ' + (drivePasta === p.id ? 'active' : '') + '" onclick="drivePasta=\'' + p.id + '\';render()">' + esc(p.nome) + ' <span>' + contagem(p.id) + '</span></button>').join('') +
-    (dir ? '<button class="filter discreto" onclick="novaPastaDrive()">+ Nova pasta</button>' : '') + '</div>';
+  const trilha = '<nav class="driveTrilha" aria-label="Pasta atual"><a href="#" onclick="drivePasta=null;render();return false">Drive</a>' +
+    caminho.map((p, k) => ' <span>/</span> ' + (k === caminho.length - 1 ? '<b>' + esc(p.nome) + '</b>' : '<a href="#" onclick="drivePasta=\'' + p.id + '\';render();return false">' + esc(p.nome) + '</a>')).join('') + '</nav>';
 
-  const nomePasta = id => (pastas.find(p => p.id === id) || {}).nome || '';
+  const cartaoPasta = p => '<a href="#" class="card drivePasta" onclick="driveBusca=\'\';drivePasta=\'' + p.id + '\';render();return false">' +
+    '<span class="driveIconePasta" aria-hidden="true"></span><span class="drivePastaTexto"><b>' + esc(p.nome) + '</b>' +
+    '<span class="meta">' + (q && p.pai_id ? esc(nomeCaminho(p.pai_id)) + ' · ' : '') + (() => {
+      const n = contarItens(p.id), s = pastasDe(p.id).length;
+      return [s ? s + ' pasta' + (s > 1 ? 's' : '') : null, n + ' ' + (n === 1 ? 'item' : 'itens')].filter(Boolean).join(' · ');
+    })() + '</span></span></a>';
+
   const cartao = it => {
     const img = ehImagem(it);
     const capa = img
@@ -50,28 +75,32 @@ function drive() {
     return '<div class="card driveItem">' + capa +
       '<div class="driveInfo"><b title="' + esc(it.nome) + '">' + esc(it.nome) + '</b>' +
       (it.descricao ? '<div class="meta">' + esc(it.descricao) + '</div>' : '') +
-      '<div class="meta">' + [drivePasta === 'todas' ? nomePasta(it.pasta_id) : null, it.tipo === 'arquivo' ? tamanhoLegivel(it.tamanho) : rotuloTipo(it),
+      '<div class="meta">' + [q ? nomeCaminho(it.pasta_id) : null, it.tipo === 'arquivo' ? tamanhoLegivel(it.tamanho) : rotuloTipo(it),
         quemEnviou(it.enviado_por) ? 'por ' + quemEnviou(it.enviado_por) : null].filter(Boolean).map(esc).join(' · ') + '</div></div>' +
       '<div class="driveAcoes">' + abrir +
       '<button class="filter" onclick="copiarLinkDrive(\'' + it.id + '\')">Copiar link</button>' +
       (dir ? '<button class="filter discreto" onclick="apagarItemDrive(\'' + it.id + '\')">Excluir</button>' : '') + '</div></div>';
   };
 
-  const cabecalhoPasta = pastaAtual && dir ? '<div class="drivePastaAcoes"><button class="filter discreto" onclick="renomearPastaDrive(\'' + pastaAtual.id + '\')">Renomear pasta</button>' +
+  const pastaAtual = caminho[caminho.length - 1];
+  const acoesPasta = pastaAtual && dir && !q ? '<div class="drivePastaAcoes"><button class="filter discreto" onclick="renomearPastaDrive(\'' + pastaAtual.id + '\')">Renomear pasta</button>' +
     '<button class="filter discreto" onclick="apagarPastaDrive(\'' + pastaAtual.id + '\')">Excluir pasta</button></div>' : '';
 
+  const vazio = !pastasBusca.length && !visiveis.length;
   shell('Drive/Anexos', 'Kit de marca, materiais do espetáculo e links do Google Drive',
-    '<div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap">' +
-    '<button class="filter" onclick="abrirLinkDrive()">+ Adicionar link</button>' +
-    '<button class="btn" onclick="escolherArquivosDrive()">+ Enviar arquivos</button></div>' +
-    abas +
-    '<input class="search" id="buscaDrive" placeholder="Buscar pelo nome..." value="' + esc(driveBusca) + '" oninput="driveBusca=this.value;render();const i=document.getElementById(\'buscaDrive\');i.focus();i.setSelectionRange(i.value.length,i.value.length)">' +
-    cabecalhoPasta +
-    (pastas.length ? (visiveis.length ? '<div class="driveGrade">' + visiveis.map(cartao).join('') + '</div>'
-      : '<div class="empty">' + (q ? 'Nada encontrado com esse nome.' : 'Nada nesta pasta ainda. Use "+ Enviar arquivos" ou "+ Adicionar link".') + '</div>')
-      : '<div class="empty">Nenhuma pasta criada ainda.' + (dir ? ' Use "+ Nova pasta".' : '') + '</div>') +
-    '<div class="meta section">Arquivos de até 50 MB. Para vídeos e arquivos maiores, guarde no Google Drive e use "+ Adicionar link".</div>' +
-    modalLinkDrive(pastas));
+    '<div class="driveBotoes">' +
+    '<button class="filter" onclick="novaPastaDrive()">+ Nova pasta</button>' +
+    '<button class="filter enviarPasta" onclick="escolherPastaDoComputador()">+ Enviar pasta</button>' +
+    (drivePasta ? '<button class="filter" onclick="abrirLinkDrive()">+ Adicionar link</button>' +
+      '<button class="btn" onclick="escolherArquivosDrive()">+ Enviar arquivos</button>' : '') + '</div>' +
+    '<input class="search" id="buscaDrive" placeholder="Buscar arquivos e pastas pelo nome..." value="' + esc(driveBusca) + '" oninput="driveBusca=this.value;render();const i=document.getElementById(\'buscaDrive\');i.focus();i.setSelectionRange(i.value.length,i.value.length)">' +
+    (q ? '<div class="meta" style="margin:-4px 0 12px">Resultados da busca em todo o Drive</div>' : '<div class="driveTopo">' + trilha + acoesPasta + '</div>') +
+    (pastasBusca.length ? '<div class="driveGradePastas">' + pastasBusca.map(cartaoPasta).join('') + '</div>' : '') +
+    (visiveis.length ? '<div class="driveGrade">' + visiveis.map(cartao).join('') + '</div>' : '') +
+    (vazio ? '<div class="empty">' + (q ? 'Nada encontrado com esse nome.' : drivePasta ? 'Pasta vazia. Use "+ Enviar arquivos", "+ Enviar pasta" ou "+ Adicionar link".' : 'Nenhuma pasta ainda. Use "+ Nova pasta" ou "+ Enviar pasta".') + '</div>' : '') +
+    (!drivePasta && !q && pastasBusca.length ? '<div class="meta section">Abra uma pasta para enviar arquivos ou adicionar links dentro dela.</div>' : '') +
+    '<div class="meta section">Arquivos de até 50 MB. Para vídeos e arquivos maiores, guarde no Google Drive e use "+ Adicionar link". "+ Enviar pasta" aparece só no computador.</div>' +
+    modalLinkDrive());
   carregarMiniaturas(visiveis.filter(ehImagem));
 }
 
@@ -88,23 +117,60 @@ async function carregarMiniaturas(lista) {
 }
 
 /* ---------- Enviar arquivos ---------- */
-function pastaParaEnvio() {
-  if (drivePasta !== 'todas') return drivePasta;
-  const pastas = DB.drivePastas || [];
-  return pastas.length === 1 ? pastas[0].id : null;
-}
-async function escolherArquivosDrive() {
-  let pasta = pastaParaEnvio();
-  if (!pasta) {
-    if (!(DB.drivePastas || []).length) return alert('Ainda não há pastas. Peça para a Direção criar uma.');
-    return avisar('Escolha primeiro a pasta onde os arquivos vão ficar (os botões acima da busca).', 'erro');
-  }
+function escolherArquivosDrive() {
+  if (!drivePasta) return avisar('Abra primeiro a pasta onde os arquivos vão ficar.', 'erro');
+  const pasta = drivePasta;
   const inp = document.createElement('input');
   inp.type = 'file'; inp.multiple = true;
   inp.onchange = () => enviarArquivosDrive([...inp.files], pasta);
   inp.click();
 }
-async function enviarArquivosDrive(arquivos, pasta) {
+/* Envia uma pasta do computador mantendo as subpastas */
+function escolherPastaDoComputador() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.multiple = true;
+  inp.setAttribute('webkitdirectory', ''); inp.setAttribute('directory', '');
+  if (!('webkitdirectory' in inp)) return alert('Este navegador não envia pastas inteiras. Use o computador (Chrome, Edge, Firefox ou Safari no Mac).');
+  const destino = drivePasta;
+  inp.onchange = () => enviarPastaDrive([...inp.files], destino);
+  inp.click();
+}
+async function garantirPasta(nome, pai) {
+  const existe = (DB.drivePastas || []).find(p => p.nome === nome && (p.pai_id || null) === (pai || null));
+  if (existe) return existe.id;
+  const ordem = pastasDe(pai).reduce((m, p) => Math.max(m, p.ordem || 0), 0) + 1;
+  const r = await sbClient.from('drive_pastas').insert({ nome, pai_id: pai || null, ordem }).select().single();
+  if (r.error) throw new Error(/pai_id|policy|row-level/i.test(r.error.message) ? 'Falta rodar o arquivo supabase/014_drive_subpastas.sql no Supabase (SQL Editor).' : r.error.message);
+  (DB.drivePastas = DB.drivePastas || []).push(r.data);
+  return r.data.id;
+}
+async function enviarPastaDrive(arquivos, destino) {
+  arquivos = arquivos.filter(f => !/(^|\/)\.[^/]*$/.test(f.webkitRelativePath || f.name) && !/(^|\/)(Thumbs\.db|desktop\.ini)$/i.test(f.webkitRelativePath || ''));
+  if (!arquivos.length) return avisar('A pasta escolhida está vazia.', 'erro');
+  const raiz = (arquivos[0].webkitRelativePath || '').split('/')[0] || 'Pasta enviada';
+  if (!await confirmar('Enviar a pasta "' + raiz + '"?\n\n' + arquivos.length + ' arquivo' + (arquivos.length > 1 ? 's' : '') + ', para ' + (destino ? 'dentro de "' + nomeCaminho(destino) + '"' : 'o início do Drive') + '. As subpastas são mantidas.', { ok: 'Enviar pasta' })) return;
+  // agrupa os arquivos pela pasta de origem e cria a mesma estrutura
+  const porPasta = new Map();
+  try {
+    for (const f of arquivos) {
+      const partes = (f.webkitRelativePath || raiz + '/' + f.name).split('/'); partes.pop();
+      const chave = partes.join('/');
+      if (!porPasta.has(chave)) {
+        let pai = destino;
+        for (const nome of partes) pai = await garantirPasta(nome, pai);
+        porPasta.set(chave, { id: pai, arquivos: [] });
+      }
+      porPasta.get(chave).arquivos.push(f);
+    }
+  } catch (e) { await load(); return alert('Não foi possível criar as pastas. ' + e.message); }
+  for (const { id, arquivos: l } of porPasta.values()) await enviarArquivosDrive(l, id, true);
+  drivePasta = porPasta.size ? [...porPasta.values()][0].id : destino;
+  const raizCriada = (DB.drivePastas || []).find(p => p.nome === raiz && (p.pai_id || null) === (destino || null));
+  if (raizCriada) drivePasta = raizCriada.id;
+  await load();
+  avisar('Pasta "' + raiz + '" enviada.');
+}
+async function enviarArquivosDrive(arquivos, pasta, parteDeUmaPasta) {
   if (!arquivos.length) return;
   const grandes = arquivos.filter(f => f.size > DRIVE_LIMITE);
   if (grandes.length) avisar('Ficaram de fora (mais de 50 MB): ' + grandes.map(f => f.name).join(', ') + '. Guarde no Google Drive e adicione o link.', 'erro');
@@ -122,27 +188,26 @@ async function enviarArquivosDrive(arquivos, pasta) {
     if (r.error) { await sbClient.storage.from('drive').remove([caminho]); falhas.push(f.name + ' (' + r.error.message + ')'); }
   }
   if (enviando) enviando.remove();
-  await load();
   if (falhas.length) alert('Não foi possível enviar: ' + falhas.join('; '));
-  else avisar(ok.length > 1 ? ok.length + ' arquivos enviados.' : 'Arquivo enviado.');
+  if (parteDeUmaPasta) return;
+  await load();
+  if (!falhas.length) avisar(ok.length > 1 ? ok.length + ' arquivos enviados.' : 'Arquivo enviado.');
 }
 
 /* ---------- Links ---------- */
-function modalLinkDrive(pastas) {
+function modalLinkDrive() {
   return '<div id="driveLinkModal" class="modal" onclick="if(event.target===this)fecharLinkDrive()"><div class="modalbox">' +
     '<div class="modalhead"><div><div class="eyebrow">Drive/Anexos</div><h2>Adicionar link</h2></div><button class="close" onclick="fecharLinkDrive()" aria-label="Fechar">×</button></div>' +
     '<div class="formgrid">' +
     '<div class="field full"><label>Endereço</label><input id="dlUrl" placeholder="https://drive.google.com/..." inputmode="url"></div>' +
     '<div class="field full"><label>Nome</label><input id="dlNome" placeholder="Ex.: Fotos do ensaio de 15/10"></div>' +
-    '<div class="field full"><label>Pasta</label><select id="dlPasta">' + pastas.map(p => '<option value="' + p.id + '">' + esc(p.nome) + '</option>').join('') + '</select></div>' +
     '<div class="field full"><label>Descrição (opcional)</label><input id="dlDesc" placeholder="O que tem nesse link"></div>' +
     '</div><div class="modalactions"><button class="filter" onclick="fecharLinkDrive()">Cancelar</button><button class="btn" onclick="salvarLinkDrive()">Adicionar</button></div></div></div>';
 }
 function abrirLinkDrive() {
-  if (!(DB.drivePastas || []).length) return alert('Ainda não há pastas. Peça para a Direção criar uma.');
+  if (!drivePasta) return avisar('Abra primeiro a pasta onde o link vai ficar.', 'erro');
   const m = document.getElementById('driveLinkModal'); m.classList.add('show');
   ['dlUrl', 'dlNome', 'dlDesc'].forEach(i => document.getElementById(i).value = '');
-  if (drivePasta !== 'todas') document.getElementById('dlPasta').value = drivePasta;
   setTimeout(() => document.getElementById('dlUrl').focus(), 30);
 }
 function fecharLinkDrive() { const m = document.getElementById('driveLinkModal'); if (m) m.classList.remove('show'); }
@@ -152,7 +217,7 @@ async function salvarLinkDrive() {
   if (!url) return alert('Cole o endereço do link.');
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
   const r = await sbClient.from('drive_itens').insert({
-    pasta_id: document.getElementById('dlPasta').value, tipo: 'link', url,
+    pasta_id: drivePasta, tipo: 'link', url,
     nome: nome || url.replace(/^https?:\/\/(www\.)?/i, '').slice(0, 60),
     descricao: document.getElementById('dlDesc').value.trim() || null, enviado_por: user.id
   });
@@ -191,12 +256,10 @@ async function apagarItemDrive(id) {
   await load();
 }
 async function novaPastaDrive() {
-  const nome = await perguntar('Nome da nova pasta', '', { campo: 'linha', ok: 'Criar pasta' });
+  const nome = await perguntar('Nome da nova pasta' + (drivePasta ? '\nVai ficar dentro de "' + nomeCaminho(drivePasta) + '".' : ''), '', { campo: 'linha', ok: 'Criar pasta' });
   if (!nome || !nome.trim()) return;
-  const ordem = (DB.drivePastas || []).reduce((m, p) => Math.max(m, p.ordem || 0), 0) + 1;
-  const r = await sbClient.from('drive_pastas').insert({ nome: nome.trim(), ordem }).select().single();
-  if (r.error) return alert(/drive_pastas/.test(r.error.message) ? 'Falta rodar o arquivo supabase/013_drive_anexos.sql no Supabase (SQL Editor).' : 'Não foi possível criar: ' + r.error.message);
-  if (r.data) drivePasta = r.data.id;
+  try { drivePasta = await garantirPasta(nome.trim(), drivePasta); }
+  catch (e) { return alert('Não foi possível criar a pasta. ' + e.message); }
   await load();
 }
 async function renomearPastaDrive(id) {
@@ -209,12 +272,14 @@ async function renomearPastaDrive(id) {
 }
 async function apagarPastaDrive(id) {
   const p = (DB.drivePastas || []).find(x => x.id === id); if (!p) return;
-  const itens = (DB.driveItens || []).filter(i => i.pasta_id === id);
-  if (!await confirmar('Excluir a pasta "' + p.nome + '"?\n\n' + (itens.length ? 'Os ' + itens.length + ' itens dentro dela também serão apagados.' : 'A pasta está vazia.'))) return;
+  const ids = new Set([id, ...descendentes(id)]);
+  const itens = (DB.driveItens || []).filter(i => ids.has(i.pasta_id));
+  const subs = ids.size - 1;
+  if (!await confirmar('Excluir a pasta "' + p.nome + '"?\n\n' + (itens.length || subs ? 'Tudo o que está dentro dela também será apagado: ' + [subs ? subs + ' subpasta' + (subs > 1 ? 's' : '') : null, itens.length ? itens.length + ' ' + (itens.length > 1 ? 'itens' : 'item') : null].filter(Boolean).join(' e ') + '.' : 'A pasta está vazia.'))) return;
   const caminhos = itens.map(i => i.caminho).filter(Boolean);
   const r = await sbClient.from('drive_pastas').delete().eq('id', id);
   if (r.error) return alert('Não foi possível excluir: ' + r.error.message);
   if (caminhos.length) await sbClient.storage.from('drive').remove(caminhos);
-  drivePasta = 'todas';
+  drivePasta = p.pai_id || null;
   await load();
 }
