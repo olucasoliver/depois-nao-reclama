@@ -174,7 +174,7 @@ function producao() {
 }
 function modalTarefa() {
   return '<div id="tarefaModal" class="modal" onclick="if(event.target===this)fecharTarefa()"><div class="modalbox">' +
-    '<div class="modalhead"><div><div class="eyebrow">Produção</div><h2 id="tarefaTitulo">Nova tarefa</h2></div><button class="close" onclick="fecharTarefa()">×</button></div>' +
+    '<div class="modalhead"><div><div class="eyebrow">Demandas</div><h2 id="tarefaTitulo">Nova tarefa</h2></div><button class="close" onclick="fecharTarefa()">×</button></div>' +
     '<div class="formgrid"><div class="field full"><label>Tarefa</label><input id="tTitulo" placeholder="Ex.: Comprar tecido do figurino"></div>' +
     '<div class="field"><label>Categoria</label><input id="tCategoria" list="listaCatTarefa" placeholder="Ex.: Figurino, cenário, divulgação"></div>' +
     '<div class="field"><label>Responsável</label>' + campoResponsavel('tResponsavel') + '</div>' +
