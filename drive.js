@@ -53,7 +53,9 @@ function drive() {
   visiveis.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true }));
   const pastasBusca = q ? (DB.drivePastas || []).filter(p => p.nome.toLowerCase().includes(q)) : subpastas;
 
-  const trilha = '<nav class="driveTrilha" aria-label="Pasta atual"><a href="#" onclick="drivePasta=null;render();return false">Drive</a>' +
+  const pai = caminho.length > 1 ? caminho[caminho.length - 2].id : null;
+  const voltar = drivePasta ? '<button class="filter driveVoltar" onclick="drivePasta=' + (pai ? '\'' + pai + '\'' : 'null') + ';render()">← Voltar</button>' : '';
+  const trilha = voltar + '<nav class="driveTrilha" aria-label="Pasta atual"><a href="#" onclick="drivePasta=null;render();return false">Drive</a>' +
     caminho.map((p, k) => ' <span>/</span> ' + (k === caminho.length - 1 ? '<b>' + esc(p.nome) + '</b>' : '<a href="#" onclick="drivePasta=\'' + p.id + '\';render();return false">' + esc(p.nome) + '</a>')).join('') + '</nav>';
 
   const cartaoPasta = p => '<a href="#" class="card drivePasta" data-pasta="' + p.id + '" onclick="driveBusca=\'\';drivePasta=\'' + p.id + '\';render();return false">' +
@@ -95,7 +97,7 @@ function drive() {
       '<button class="btn" onclick="escolherArquivosDrive()">+ Enviar arquivos</button>' : '') + '</div>' +
     '<input class="search" id="buscaDrive" placeholder="Buscar arquivos e pastas pelo nome..." value="' + esc(driveBusca) + '" oninput="driveBusca=this.value;render();const i=document.getElementById(\'buscaDrive\');i.focus();i.setSelectionRange(i.value.length,i.value.length)">' +
     '<div class="driveArea" data-alvo="' + esc(drivePasta ? 'Solte para enviar para "' + nomeCaminho(drivePasta) + '"' : 'Solte pastas para enviar ao Drive') + '">' +
-    (q ? '<div class="meta" style="margin:-4px 0 12px">Resultados da busca em todo o Drive</div>' : '<div class="driveTopo">' + trilha + acoesPasta + '</div>') +
+    (q ? '<div class="driveTopo"><button class="filter driveVoltar" onclick="driveBusca=\'\';render()">← Voltar</button><span class="meta">Resultados da busca em todo o Drive</span></div>' : '<div class="driveTopo"><div class="driveTopoEsq">' + trilha + '</div>' + acoesPasta + '</div>') +
     (pastasBusca.length ? '<div class="driveGradePastas">' + pastasBusca.map(cartaoPasta).join('') + '</div>' : '') +
     (visiveis.length ? '<div class="driveGrade">' + visiveis.map(cartao).join('') + '</div>' : '') +
     (vazio ? '<div class="empty">' + (q ? 'Nada encontrado com esse nome.' : drivePasta ? 'Pasta vazia. Use "+ Enviar arquivos", "+ Enviar pasta" ou "+ Adicionar link".' : 'Nenhuma pasta ainda. Use "+ Nova pasta" ou "+ Enviar pasta".') + '</div>' : '') +

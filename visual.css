@@ -196,3 +196,6 @@ input[type=checkbox], input[type=radio] { accent-color: var(--pink); }
 .driveArea.alvoSoltar { background: #d81b600d; outline: 2px dashed var(--pink); outline-offset: 6px; }
 .driveArea.alvoSoltar::after { content: attr(data-alvo); position: absolute; left: 50%; top: 40px; transform: translateX(-50%); background: var(--pink); color: #fff; font-weight: 700; padding: 10px 16px; border-radius: 10px; pointer-events: none; white-space: nowrap; z-index: 2; }
 .drivePasta.alvoSoltar { outline: 2px dashed var(--pink); outline-offset: 2px; background: #fff5f9; }
+.driveTopoEsq { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-width: 0; }
+.driveVoltar { padding: 7px 12px; }
+.driveTopo .meta { margin: 0; }
